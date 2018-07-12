@@ -7,7 +7,7 @@ Author: John Lockwood - https://jelockwood.blogspot.co.uk
 
 # Info
 
-pinpoint is a script that is able to find the location of your Mac using Google's GeoLocation APIs. In order to use Google's GeoLocation APIs you need to obtain an API key. As of July 16th 2018 you also need to enable billing on your account for your API key aka Project. As far as I can see you get a $200 per month credit and this should be enough for 10,000 uses of Geolocation, Geocoding and Elevation APIs each. See [Wiki](https://github.com/jelockwood/pinpoint/wiki).
+pinpoint is a script that is able to find the location of your Mac using Google's GeoLocation APIs. In order to use Google's GeoLocation APIs you need to obtain an API key. As of July 16th 2018 you also need to enable billing on your account for your API key aka Project. As far as I can see you get a $200 per month credit and this should be enough for 10,000 uses of Geolocation, Geocoding and Elevation APIs _each_. See [Wiki](https://github.com/jelockwood/pinpoint/wiki).
 
 This version is a completely written from scratch replacement for the now deprecated original python version written by Clive Burlison. See https://github.com/clburlison/pinpoint Clive has kindly given his express permission for me to re-use the name of his original project and to design mine as a drop-in replacement.
 
