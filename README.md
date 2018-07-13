@@ -1,7 +1,7 @@
 # pinpoint
 A script for finding your Mac
 
-![pinpoint logo](/support_files/logo.png)
+![pinpoint logo](/support_files/pinpoint-logo.png)
 
 Author: John Lockwood - https://jelockwood.blogspot.co.uk  
 
