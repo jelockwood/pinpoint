@@ -27,4 +27,4 @@ I am not a lawyer and all questions regarding the legality of this project withi
 
 
 # Credits
-Based off of works by:  Clayton Burlison
+Based off of works by: [Clayton Burlison](https://github.com/clburlison/pinpoint/)
