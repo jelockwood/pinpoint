@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # This script reads the latest GoogleMap URL produced by pinpoint.sh on a client Mac and returns it as an extension attribute
 if [ ! -e "/Library/Application Support/pinpoint/location.plist" ]; then
 	exit 1
