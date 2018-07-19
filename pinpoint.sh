@@ -10,53 +10,99 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.0.0"
+versionstring="3.0.1"
+# get date and time in UTC hence timezone offset is zero
+rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
+#echo "$rundate"
+#
+# help information
+usage()
+{
+    echo "usage: $scriptname [-V] [-j] [-h] [-g] [-a] [-k yourkeyhere]
+	-V | --version		Print script version and exit
+	-j | --jamf		Return map URL only to stdout formatted as an
+    				extension attribute for use with JAMF Pro
+	-h | --help		show this help message and exit
+	-g | --geocode		Use Geocode API to look up street address
+	-a | --altitude		Use Elevation API to look up altitude
+	-k | --key yourkeyhere	Specify your Google API key"
+}
+
 # Set your Google geolocation API key here
 # You can get an API key here https://developers.google.com/maps/documentation/geolocation/get-api-key
 #
 # Set API key in script - mainly for use with JAMF
 YOUR_API_KEY="pasteyourkeyhere"
 #
+# Set initial default preference values
+use_geocode="True"
+use_altitude="False"
+jamf=0
+commandoptions=0
+#
+# killall cfprefsd
 # For normal non-jamf use read preference file for API key
-if [ -e "/Library/Preferences/com.jelockwood.pinpoint.plist" ]; then
-	PREFERENCE_API_KEY=$(defaults read "/Library/Preferences/com.jelockwood.pinpoint" YOUR_API_KEY)
-	if [ ! -z "$PREFERENCE_API_KEY" ]; then
-		YOUR_API_KEY="$PREFERENCE_API_KEY"
-	fi
-fi
-#
-# Location of plist with results
-resultslocation="/Library/Application Support/pinpoint/location.plist"
-#
-# help information
-usage()
-{
-    echo "usage: $scriptname [-V] [-j] [-h]
-    		-V | --version		Print script version and exit
-    		-j | --jamf		Return map URL only to stdout formatted as an extension
-    					attribute for use with JAMF Pro
-    		-h | --help		show this help message and exit"
-}
-
+# First check for any command line options
 
 # Check parameters
-jamf=0
 while [ "$1" != "" ]; do
     case $1 in
-        -V | --version )        echo "$scriptname version = $versionstring"
-        						exit
-                                ;;
-        -j | --jamf )    		jamf=1
-                                ;;
-        -h | --help )           usage
-                                exit
-                                ;;
-        * )                     usage
-                                exit 1
+		-V | --version )        	echo "$scriptname version = $versionstring"
+        					exit
+                                		;;
+		-j | --jamf )    		jamf=1
+						commandoptions=1
+                                		;;
+		-a | --altitude )		use_altitude=1
+						commandoptions=1
+						;;
+		-g | --geocode )		use_geocode=1
+						commandoptions=1
+						;;
+		-k | --key )			YOUR_API_KEY="$2"
+						commandoptions=1
+						shift
+						;;
+		-h | --help )           	usage
+                                		exit
+                                		;;
+		* )                     	usage
+                                		exit 1
+						;;
     esac
     shift
 done
 
+# Second if no command line options check preference file
+if [ $commandoptions -eq 0 ]; then
+	readonly DOMAIN="com.jelockwood.pinpoint"
+	# Use CFPreferences no defaults command as it supports both local, managed and config profiles automatically
+	pref_value() {
+		/usr/bin/python -c "from Foundation import CFPreferencesCopyAppValue; print CFPreferencesCopyAppValue(\"$2\", \"$1\")"
+	}
+
+	use_geocode=$(pref_value ${DOMAIN} "USE_GEOCODE")
+	use_altitude=$(pref_value ${DOMAIN} "USE_ALTITUDE")
+	PREFERENCE_API_KEY=$(pref_value ${DOMAIN} "YOUR_API_KEY")
+	if [ ! -z "$PREFERENCE_API_KEY" ]; then
+		YOUR_API_KEY="$PREFERENCE_API_KEY"
+	fi
+
+fi
+
+#
+# Validate YOUR_API_KEY
+# If not valid from built-in, command-line or preference file via all of above then exit with error
+if [ "$YOUR_API_KEY" == "pasteyourkeyhere" ] || [ "$YOUR_API_KEY" == "yourkeyhere" ] || [ -z "$YOUR_API_KEY" ]; then
+	echo "Invalid Google API key"
+	exit 1
+fi
+
+
+#
+# Location of plist with results
+resultslocation="/Library/Application Support/pinpoint/location.plist"
+#
 
 #
 # Get list of network interfaces, find WiFi interface
@@ -122,9 +168,6 @@ IFS=$OLD_IFS
 #echo "$json"
 result=$(curl -s -d "$json" -H "Content-Type: application/json" -i "https://www.googleapis.com/geolocation/v1/geolocate?key=$YOUR_API_KEY")
 echo "$result"
-# get date and time in UTC hence timezone offset is zero
-rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
-#echo "$rundate"
 #
 # Get HTTP result code, if 400 it implies it failed, if 200 it succeeded
 # A 400 or 404 error might mean none of your detect WiFi BSSIDs are known to Google
@@ -133,11 +176,11 @@ echo "Result code = $resultcode"
 if [ $resultcode != "200" ]; then
 	if [ -e "$resultslocation" ]; then
 		reason=`echo "$result" | grep "HTTP" | awk -F ": " '{print $2}'`
-		defaults write "$resultslocation" CurrentStatus -string "Error 400 - $reason"
+		defaults write "$resultslocation" CurrentStatus -string "Error $resultcode - $reason"
 		defaults write "$resultslocation" LastRun -string "$rundate"
 		defaults write "$resultslocation" StaleLocation -string "Yes"
+		chmod 644 "$resultslocation"
 	fi
-	chmod 644 "$resultslocation"
 	exit 1
 fi
 #
@@ -153,54 +196,80 @@ accuracy=`echo "$result" | grep "accuracy" | awk -F ": " '{print $2}'`
 #
 # Create URL to display location using Google Maps
 # First version shows using standard map view
-# Second version shows using satellite map view
 googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m5!3m4"
+# Second version shows using satellite map view
 # googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!3m1!1e3"
 #
 # Use Google to reverse geocode location to get street address
-address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long")
+if [ "$use_geocode" == "True" ]; then
+	#address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long")
+	# If you get an error saying you need to supply a valid API key then try this line instead
+	address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long&key=$YOUR_API_KEY")
+	status=`echo "$address" | grep "status" | awk -F ": " '{print $2}' | sed -e 's/^"//' -e 's/.\{1\}$//'`
+	if [ "$status" != "OK" ]; then
+		if [ -e "$resultslocation" ]; then
+			reason=`echo "$address" | grep "error_message" | awk -F ": " '{print $2}' | sed -e 's/^"//' -e 's/.\{2\}$//'`
+			defaults write "$resultslocation" CurrentStatus -string "Error $status - $reason"
+			defaults write "$resultslocation" LastRun -string "$rundate"
+			defaults write "$resultslocation" StaleLocation -string "Yes"
+			chmod 644 "$resultslocation"
+		fi
+		exit 1
+		#
+		# Find first result which is usually best and strip unwanted characters from beginning and end of line
+		formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
+		#echo "$formatted_address"
+	fi
+else
+	formatted_address=""
+fi
 #
-# Find first result which is usually best and strip unwanted characters from beginning and end of line
-formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
-#echo "$formatted_address"
+# Use Google to find elevation aka altitude
+if [ "$use_altitude" == "True" ]; then
+	altitude_result=$(curl -s "https://maps.googleapis.com/maps/api/elevation/json?locations=$lat,$long&key=$YOUR_API_KEY")
+	altitude_status=`echo "$altitude_result" | grep -m1 "status" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{1\}$//'`
+	if [ "$altitude_status" != "OK" ]; then
+		if [ -e "$resultslocation" ]; then
+			reason=`echo "$altitude_result" | grep "error_message" | awk -F ": " '{print $2}' | sed -e 's/^"//' -e 's/.\{2\}$//'`
+			defaults write "$resultslocation" CurrentStatus -string "Error $status - $reason"
+			defaults write "$resultslocation" LastRun -string "$rundate"
+			defaults write "$resultslocation" StaleLocation -string "Yes"
+			chmod 644 "$resultslocation"
+		fi
+		exit 1
+	else
+		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
+	fi
+else
+	altitude="0"
+fi
 #
 if [ $jamf -eq 1 ]; then
 	echo "<result>$googlemap</result>"
 else
-	defaults write "$resultslocation" Address -string "$formatted_address"
-	# Read pinpoint preference file to see if we are to use optional Elevation API call
-	# if no we leave the setting at zero metres altitude
-	defaults write "$resultslocation" Altitude -int 0
 	if [ -e "/Library/Preferences/com.jelockwood.pinpoint.plist" ]; then
-		use_altitude=$(defaults read "/Library/Preferences/com.jelockwood.pinpoint" USE_ALTITUDE)
-		if [ $use_altitude -eq 0 ]; then
-			altitude_result=$(curl -s "https://maps.googleapis.com/maps/api/elevation/json?locations=$lat,$long&key=$YOUR_API_KEY")
-			altitude_status=`echo "$altitude_result" | grep -m1 "status" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{1\}$//'`
-			echo "$altitude_status"
-			if [ $altitude_status == "OK" ]; then
-				altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
-				defaults write "$resultslocation" Altitude -int "$altitude"
-			fi
+		defaults write "$resultslocation" Address -string "$formatted_address"
+		defaults write "$resultslocation" Altitude -int "$altitude"
+		defaults write "$resultslocation" CurrentStatus -string "Successful"
+		defaults write "$resultslocation" GoogleMap -string "$googlemap"
+		# Even though this version of pinpoint has been deliberately written not to use Location Services at all
+		# we check to see if Location services is or is not enabled and report this.
+		# This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
+		ls_enabled=`defaults read "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" LocationServicesEnabled`
+		echo "ls_enabled = $ls_enabled"
+		if [ "$ls_enabled" == "True" ]; then
+			defaults write "$resultslocation" LS_Enabled -bool TRUE
+		else
+			defaults write "$resultslocation" LS_Enabled -bool FALSE
 		fi
+		defaults write "$resultslocation" LastLocationRun -string "$rundate"
+		defaults write "$resultslocation" LastRun -string "$rundate"
+		defaults write "$resultslocation" Latitude -string "$lat"
+		defaults write "$resultslocation" LatitudeAccuracy -int "$accuracy"
+		defaults write "$resultslocation" Longitude -string "$long"
+		defaults write "$resultslocation" LongitudeAccuracy -int "$accuracy"
+		defaults write "$resultslocation" StaleLocation -string "No"
+		chmod 644 "$resultslocation"
 	fi
-	defaults write "$resultslocation" CurrentStatus -string "Successful"
-	defaults write "$resultslocation" GoogleMap -string "$googlemap"
-	# Even though this version of pinpoint has been deliberately written not to use Location Services at all
-	# we check to see if Location services is or is not enabled and report this.
-	# This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
-	ls_enabled=`defaults read "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" LocationServicesEnabled`
-	if [ $ls_enabled -eq 1 ]; then
-		defaults write "$resultslocation" LS_Enabled -bool TRUE
-	else
-		defaults write "$resultslocation" LS_Enabled -bool FALSE
-	fi
-	defaults write "$resultslocation" LastLocationRun -string "$rundate"
-	defaults write "$resultslocation" LastRun -string "$rundate"
-	defaults write "$resultslocation" Latitude -string "$lat"
-	defaults write "$resultslocation" LatitudeAccuracy -int "$accuracy"
-	defaults write "$resultslocation" Longitude -string "$long"
-	defaults write "$resultslocation" LongitudeAccuracy -int "$accuracy"
-	defaults write "$resultslocation" StaleLocation -string "No"
-	chmod 644 "$resultslocation"
 fi
 exit 0
