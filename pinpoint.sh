@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright John E. Lockwood (2018)
+# Copyright John E. Lockwood (2018-2019)
 #
 # pinpoint a script to find your Mac's location
 #
@@ -10,7 +10,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.0.1"
+versionstring="3.0.3"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -89,7 +89,6 @@ if [ $commandoptions -eq 0 ]; then
 	fi
 
 fi
-
 #
 # Validate YOUR_API_KEY
 # If not valid from built-in, command-line or preference file via all of above then exit with error
@@ -112,8 +111,8 @@ resultslocation="/Library/Application Support/pinpoint/location.plist"
 INTERFACE=$(networksetup -listallhardwareports | grep -A1 Wi-Fi | tail -1 | awk '{print $2}')
 STATUS=$(networksetup -getairportpower $INTERFACE | awk '{print $4}')
 if [ $STATUS = "Off" ] ; then
-    sleep 5
     networksetup -setairportpower $INTERFACE on
+    sleep 5
 fi
 #
 # Now use built-in Apple tool to get list of BSSIDs
@@ -206,7 +205,9 @@ if [ "$use_geocode" == "True" ]; then
 	# If you get an error saying you need to supply a valid API key then try this line instead
 	address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long&key=$YOUR_API_KEY")
 	status=`echo "$address" | grep "status" | awk -F ": " '{print $2}' | sed -e 's/^"//' -e 's/.\{1\}$//'`
+	echo "status = $status"
 	if [ "$status" != "OK" ]; then
+		echo "not OK"
 		if [ -e "$resultslocation" ]; then
 			reason=`echo "$address" | grep "error_message" | awk -F ": " '{print $2}' | sed -e 's/^"//' -e 's/.\{2\}$//'`
 			defaults write "$resultslocation" CurrentStatus -string "Error $status - $reason"
@@ -215,11 +216,10 @@ if [ "$use_geocode" == "True" ]; then
 			chmod 644 "$resultslocation"
 		fi
 		exit 1
-		#
-		# Find first result which is usually best and strip unwanted characters from beginning and end of line
-		formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
-		#echo "$formatted_address"
 	fi
+	#
+	# Find first result which is usually best and strip unwanted characters from beginning and end of line
+	formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
 else
 	formatted_address=""
 fi
