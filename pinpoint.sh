@@ -199,6 +199,25 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 # Second version shows using satellite map view
 # googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!3m1!1e3"
 #
+
+# Calculate if device moved 
+# Get last coordinates
+oldLat=$(defaults read "$resultslocation" Latitude -string)
+oldLong=$(defaults read "$resultslocation" Longitude -string)
+
+latMove=$(python -c "print (($lat - $oldLat)*10000)")
+longMove=$(python -c "print (($long - $oldLong)*10000)")
+
+latMove=$(printf "%.0f\n" $latMove)
+longMove=$(printf "%.0f\n" $longMove)
+
+if [[ (( "$latMove" != 0 )) || ((  "$longMove" != 0 )) ]] ; then
+    use_geocode="True"
+else
+	use_geocode="False"
+fi
+#
+
 # Use Google to reverse geocode location to get street address
 if [ "$use_geocode" == "True" ]; then
 	#address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long")
