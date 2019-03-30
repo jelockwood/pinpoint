@@ -211,6 +211,9 @@ longMove=$(python -c "print (($long - $oldLong)*10000)")
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
 
+latMove=$((latMove))
+longMove=$((longMove))
+
 if [[ (( "$latMove" != 0 )) || ((  "$longMove" != 0 )) ]] ; then
     use_geocode="True"
 else
