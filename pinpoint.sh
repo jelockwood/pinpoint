@@ -202,8 +202,8 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 
 # Calculate if device moved 
 # Get last coordinates
-oldLat=$(defaults read "$resultslocation" Latitude -string)
-oldLong=$(defaults read "$resultslocation" Longitude -string)
+oldLat=$(defaults read "$resultslocation" Latitude)
+oldLong=$(defaults read "$resultslocation" Longitude)
 
 latMove=$(python -c "print (($lat - $oldLat)*10000)")
 longMove=$(python -c "print (($long - $oldLong)*10000)")
