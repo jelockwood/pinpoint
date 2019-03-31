@@ -107,6 +107,8 @@ fi
 resultslocation="/Library/Application Support/pinpoint/location.plist"
 debugLog="/Library/Application Support/pinpoint/debug.log"
 (($DEBUG)) && echo "" >> "$debugLog"
+
+(($DEBUG)) && echo "### pinpoint run ###" >> "$debugLog"
 #
 
 #
@@ -143,14 +145,15 @@ OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
 SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
 (($DEBUG)) && date >> "$debugLog"
-(($DEBUG)) && echo $OldAP $NewAP $OldSignal $NewSignal $SignalChange >> "$debugLog"
+(($DEBUG)) && echo $OldAP $NewAP >> "$debugLog"
+(($DEBUG)) && echo $OldSignal $NewSignal signal change: $SignalChange >> "$debugLog"
 
-if (( $SignalChange > 3 )) || (( $SignalChange < -3 )) ; then
+if (( $SignalChange > 4 )) || (( $SignalChange < -4 )) ; then
 	moved=1
-	(($DEBUG)) && echo "signal change" >> "$debugLog"
+	(($DEBUG)) && echo "significant signal change" >> "$debugLog"
 else
 	moved=0
-	(($DEBUG)) && echo "no signal change" >> "$debugLog"
+	(($DEBUG)) && echo "no significant signal change" >> "$debugLog"
 fi
 if [ ${OldAP} == ${NewAP} ]; then
 	(($DEBUG)) && echo "same AP" >> "$debugLog"
