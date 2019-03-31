@@ -142,8 +142,8 @@ NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 16)}')"
 OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
 SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
-date >> "$debugLog"
-echo $OldAP $NewAP $OldSignal $NewSignal $SignalChange >> "$debugLog"
+(($DEBUG)) && date >> "$debugLog"
+(($DEBUG)) && echo $OldAP $NewAP $OldSignal $NewSignal $SignalChange >> "$debugLog"
 
 if (( $SignalChange > 3 )) || (( $SignalChange < -3 )) ; then
 	moved=1
@@ -207,6 +207,7 @@ IFS=$OLD_IFS
 #
 # Using list of BSSIDs formatted as JSON query Google for location
 #echo "$json"
+(($DEBUG)) && echo "Getting coordinates">> "$debugLog"
 result=$(curl -s -d "$json" -H "Content-Type: application/json" -i "https://www.googleapis.com/geolocation/v1/geolocate?key=$YOUR_API_KEY")
 echo "$result"
 #
@@ -258,7 +259,7 @@ if  (( $latMove )) || (( $longMove )) ; then
     use_geocode="True"
 	(($DEBUG)) && echo "Possible coordinate change, going to geocode" >> "$debugLog"
 else
-	(($DEBUG)) && echo "Static" >> "$debugLog"
+	(($DEBUG)) && echo "geolocation done, no geocode needed" >> "$debugLog"
 	use_geocode="False"
 fi
 
