@@ -1,5 +1,7 @@
 #!/bin/sh
 # Copyright John E. Lockwood (2018-2019)
+DEBUG=1
+
 #
 # pinpoint a script to find your Mac's location
 #
@@ -101,6 +103,8 @@ fi
 #
 # Location of plist with results
 resultslocation="/Library/Application Support/pinpoint/location.plist"
+debugLog="/Library/Application Support/pinpoint/debug.log"
+(($DEBUG)) && echo "" >> "$debugLog"
 #
 
 #
@@ -123,30 +127,37 @@ if [ $STATUS = "Off" ] ; then
     networksetup -setairportpower $INTERFACE off
 fi
 
+#
 # has wifi signal changed - if not then exit
-
 NewResult=""
 OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
 NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
 echo "$NewResult" > /tmp/pinpoint-wifi-scan.txt
+#
+# omit last char of MAC
 OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 16)}')"
 NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 16)}')"
 OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
-Move=$(python -c "print ($OldSignal - $NewSignal)")
+SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
+date >> "$debugLog"
+echo $OldAP $NewAP $OldSignal $NewSignal $SignalChange >> "$debugLog"
 
-if (( $Move > 3 )) || (( $Move < -3 )) ; then
+if (( $SignalChange > 3 )) || (( $SignalChange < -3 )) ; then
 	moved=1
+	(($DEBUG)) && echo "signal change" >> "$debugLog"
 else
 	moved=0
 fi
 if [ ${OldAP} == ${NewAP} ]; then
-    echo
+	(($DEBUG)) && echo "same AP" >> "$debugLog"
 else
+	(($DEBUG)) && echo "AP change" >> "$debugLog"
 	moved=1
 fi
 
 if ! (( $moved ))  ; then
+	(($DEBUG)) && echo "Boring wifi, leaving">> "$debugLog"
 	exit 0
 fi
 #
@@ -238,10 +249,13 @@ longMove=$(python -c "print (($long - $oldLong)*5000)")
 
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
+(($DEBUG)) && echo $lat $long $oldLat $oldLong $latMove $longMove >> "$debugLog"
 
 if  (( $latMove )) || (( $longMove )) ; then
     use_geocode="True"
+	(($DEBUG)) && echo "Possible coordinate change, going to geocode" >> "$debugLog"
 else
+	(($DEBUG)) && echo "Static" >> "$debugLog"
 	use_geocode="False"
 fi
 
