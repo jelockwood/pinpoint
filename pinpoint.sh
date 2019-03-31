@@ -150,6 +150,7 @@ if (( $SignalChange > 3 )) || (( $SignalChange < -3 )) ; then
 	(($DEBUG)) && echo "signal change" >> "$debugLog"
 else
 	moved=0
+	(($DEBUG)) && echo "no signal change" >> "$debugLog"
 fi
 if [ ${OldAP} == ${NewAP} ]; then
 	(($DEBUG)) && echo "same AP" >> "$debugLog"
