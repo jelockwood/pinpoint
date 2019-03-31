@@ -123,6 +123,34 @@ if [ $STATUS = "Off" ] ; then
     networksetup -setairportpower $INTERFACE off
 fi
 
+# has wifi signal changed - if not then exit
+
+NewResult=""
+OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
+NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
+echo "$NewResult" > /tmp/pinpoint-wifi-scan.txt
+OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 16)}')"
+NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 16)}')"
+OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
+NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
+Move=$(python -c "print ($OldSignal - $NewSignal)")
+
+if (( $Move > 3 )) || (( $Move < -3 )) ; then
+	moved=1
+else
+	moved=0
+fi
+if [ ${OldAP} == ${NewAP} ]; then
+    echo
+else
+	moved=1
+fi
+
+if ! (( $moved ))  ; then
+	exit 0
+fi
+#
+
 OLD_IFS=$IFS
 IFS="$"
 
@@ -205,21 +233,17 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 oldLat=$(defaults read "$resultslocation" Latitude)
 oldLong=$(defaults read "$resultslocation" Longitude)
 
-latMove=$(python -c "print (($lat - $oldLat)*10000)")
-longMove=$(python -c "print (($long - $oldLong)*10000)")
+latMove=$(python -c "print (($lat - $oldLat)*5000)")
+longMove=$(python -c "print (($long - $oldLong)*5000)")
 
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
 
-latMove=$((latMove))
-longMove=$((longMove))
-
-if [[ (( "$latMove" != 0 )) || ((  "$longMove" != 0 )) ]] ; then
+if  (( $latMove )) || (( $longMove )) ; then
     use_geocode="True"
 else
 	use_geocode="False"
 fi
-#
 
 # Use Google to reverse geocode location to get street address
 if [ "$use_geocode" == "True" ]; then
