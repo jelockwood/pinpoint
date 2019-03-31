@@ -1,5 +1,7 @@
 #!/bin/sh
 # Copyright John E. Lockwood (2018-2019)
+
+# set DEBUG=1 to save debug log in /Library/Application Support/pinpoint/debug.log
 DEBUG=1
 
 #
