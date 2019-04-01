@@ -221,7 +221,7 @@ resultcode=`echo "$result" | grep "HTTP" | awk '{print $2}'`
 echo "Result code = $resultcode"
 if [ $resultcode != "200" ]; then
 	if [ -e "$resultslocation" ]; then
-		reason=`echo "$result" | grep "HTTP" | awk -F ": " '{print $2}'`
+		reason=`echo "$result" | grep "reason" | awk -F ": " '{print $2}'`
 		defaults write "$resultslocation" CurrentStatus -string "Error $resultcode - $reason"
 		defaults write "$resultslocation" LastRun -string "$rundate"
 		defaults write "$resultslocation" StaleLocation -string "Yes"
