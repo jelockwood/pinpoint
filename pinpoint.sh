@@ -164,8 +164,14 @@ else
 fi
 
 if ! (( $moved ))  ; then
-	(($DEBUG)) && echo "Boring wifi, leaving">> "$debugLog"
-	exit 0
+	LastStatus="$(defaults read "/Library/Application Support/pinpoint/location.plist" CurrentStatus | grep 403)"
+	if [ $LastStatus ] ; then
+		(($DEBUG)) && echo "Boring wifi, leaving">> "$debugLog"
+		exit 0
+	else
+		echo "Running gelocation due to error last time"
+		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
+	fi
 fi
 #
 
@@ -261,7 +267,7 @@ longMove=$(printf "%.0f\n" $longMove)
 (($DEBUG)) && echo "Moved: $latMove $longMove" >> "$debugLog"
 
 if  (( $latMove )) || (( $longMove )) ; then
-    use_geocode="True"
+    echo ""
 	(($DEBUG)) && echo "Possible coordinate change, going to geocode" >> "$debugLog"
 else
 	(($DEBUG)) && echo "geolocation done, no geocode needed" >> "$debugLog"
