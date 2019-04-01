@@ -164,7 +164,7 @@ else
 fi
 
 if ! (( $moved ))  ; then
-	LastStatus="$(defaults read "/Library/Application Support/pinpoint/location.plist" CurrentStatus | grep 403)"
+	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
 	if [ "$LastStatus" ] ; then
 		echo "Running gelocation due to error last time"
 		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
@@ -270,8 +270,14 @@ if  (( $latMove )) || (( $longMove )) ; then
     echo ""
 	(($DEBUG)) && echo "Possible coordinate change, going to geocode" >> "$debugLog"
 else
-	(($DEBUG)) && echo "geolocation done, no geocode needed" >> "$debugLog"
-	use_geocode="False"
+	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
+	if [ "$LastStatus" ] ; then
+		echo "Running geocode due to error last time"
+		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
+	else
+		(($DEBUG)) && echo "geolocation done, no geocode needed" >> "$debugLog"
+		use_geocode="False"
+	fi	
 fi
 
 # Use Google to reverse geocode location to get street address
