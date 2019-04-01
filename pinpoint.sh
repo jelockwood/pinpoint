@@ -165,12 +165,12 @@ fi
 
 if ! (( $moved ))  ; then
 	LastStatus="$(defaults read "/Library/Application Support/pinpoint/location.plist" CurrentStatus | grep 403)"
-	if [ $LastStatus ] ; then
-		(($DEBUG)) && echo "Boring wifi, leaving">> "$debugLog"
-		exit 0
-	else
+	if [ "$LastStatus" ] ; then
 		echo "Running gelocation due to error last time"
 		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
+	else
+		(($DEBUG)) && echo "Boring wifi, leaving">> "$debugLog"
+		exit 0
 	fi
 fi
 #
