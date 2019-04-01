@@ -258,7 +258,7 @@ longMove=$(python -c "print (($long - $oldLong)*5000)")
 
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
-(($DEBUG)) && echo $lat $long $oldLat $oldLong $latMove $longMove >> "$debugLog"
+(($DEBUG)) && echo "Moved: $latMove $longMove" >> "$debugLog"
 
 if  (( $latMove )) || (( $longMove )) ; then
     use_geocode="True"
