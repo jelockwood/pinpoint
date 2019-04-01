@@ -270,6 +270,7 @@ fi
 
 # Use Google to reverse geocode location to get street address
 if [ "$use_geocode" == "True" ]; then
+	(($DEBUG)) && echo "Getting geocode">> "$debugLog"
 	#address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long")
 	# If you get an error saying you need to supply a valid API key then try this line instead
 	address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long&key=$YOUR_API_KEY")
