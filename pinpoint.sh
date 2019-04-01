@@ -145,8 +145,9 @@ OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
 SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
 (($DEBUG)) && date >> "$debugLog"
-(($DEBUG)) && echo $OldAP $NewAP >> "$debugLog"
-(($DEBUG)) && echo $OldSignal $NewSignal signal change: $SignalChange >> "$debugLog"
+(($DEBUG)) && echo $OldAP $OldSignal >> "$debugLog"
+(($DEBUG)) && echo $NewAP $NewSignal >> "$debugLog"
+(($DEBUG)) && echo "signal change: $SignalChange" >> "$debugLog"
 
 if (( $SignalChange > 4 )) || (( $SignalChange < -4 )) ; then
 	moved=1
@@ -226,6 +227,7 @@ if [ $resultcode != "200" ]; then
 		defaults write "$resultslocation" StaleLocation -string "Yes"
 		chmod 644 "$resultslocation"
 	fi
+	(($DEBUG)) && echo "Error: $reason">> "$debugLog"
 	exit 1
 fi
 #
@@ -282,6 +284,7 @@ if [ "$use_geocode" == "True" ]; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
+		(($DEBUG)) && echo "Error: $reason">> "$debugLog"
 		exit 1
 	fi
 	#
@@ -303,6 +306,7 @@ if [ "$use_altitude" == "True" ]; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
+		(($DEBUG)) && echo "Error: $reason">> "$debugLog"
 		exit 1
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
@@ -339,4 +343,5 @@ else
 		chmod 644 "$resultslocation"
 	fi
 fi
+
 exit 0
