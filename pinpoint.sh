@@ -165,7 +165,8 @@ fi
 
 if ! (( $moved ))  ; then
 	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
-	if [ "$LastStatus" ] ; then
+	LastAddress="$(defaults read "$resultslocation" Address)"
+	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
 		echo "Running gelocation due to error last time"
 		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
 	else
@@ -270,8 +271,7 @@ if  (( $latMove )) || (( $longMove )) ; then
     echo ""
 	(($DEBUG)) && echo "Possible coordinate change, going to geocode" >> "$debugLog"
 else
-	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
-	if [ "$LastStatus" ] ; then
+	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
 		echo "Running geocode due to error last time"
 		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
 	else
