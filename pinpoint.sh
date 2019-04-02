@@ -107,7 +107,6 @@ fi
 resultslocation="/Library/Application Support/pinpoint/location.plist"
 debugLog="/Library/Application Support/pinpoint/debug.log"
 (($DEBUG)) && echo "" >> "$debugLog"
-
 (($DEBUG)) && echo "### pinpoint run ###" >> "$debugLog"
 #
 
@@ -149,7 +148,7 @@ SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
 (($DEBUG)) && echo $NewAP $NewSignal >> "$debugLog"
 (($DEBUG)) && echo "signal change: $SignalChange" >> "$debugLog"
 
-if (( $SignalChange > 4 )) || (( $SignalChange < -4 )) ; then
+if (( $SignalChange > 6 )) || (( $SignalChange < -6 )) ; then
 	moved=1
 	(($DEBUG)) && echo "significant signal change" >> "$debugLog"
 else
