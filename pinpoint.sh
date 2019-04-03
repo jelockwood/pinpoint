@@ -272,7 +272,7 @@ if  (( $latMove )) || (( $longMove )) ; then
 else
 	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
 		echo "Running geocode due to error last time"
-		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
+		(($DEBUG)) && echo "Running geocode due to error last time" >> "$debugLog"
 	else
 		(($DEBUG)) && echo "geolocation done, no geocode needed" >> "$debugLog"
 		use_geocode="False"
