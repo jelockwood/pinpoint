@@ -323,8 +323,8 @@ if [ "$use_altitude" == "True" ]; then
 		exit 1
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
+		defaults write "$resultslocation" Altitude -int "$altitude"
 	fi
-	defaults write "$resultslocation" Altitude -int "$altitude"
 else
 	altitude="0"
 fi
