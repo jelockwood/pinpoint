@@ -302,6 +302,7 @@ if [ "$use_geocode" == "True" ]; then
 	#
 	# Find first result which is usually best and strip unwanted characters from beginning and end of line
 	formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
+	defaults write "$resultslocation" Address -string "$formatted_address"
 else
 	formatted_address=""
 fi
@@ -323,6 +324,7 @@ if [ "$use_altitude" == "True" ]; then
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
 	fi
+	defaults write "$resultslocation" Altitude -int "$altitude"
 else
 	altitude="0"
 fi
@@ -331,8 +333,6 @@ if [ $jamf -eq 1 ]; then
 	echo "<result>$googlemap</result>"
 else
 	if [ -e "/Library/Preferences/com.jelockwood.pinpoint.plist" ]; then
-		defaults write "$resultslocation" Address -string "$formatted_address"
-		defaults write "$resultslocation" Altitude -int "$altitude"
 		defaults write "$resultslocation" CurrentStatus -string "Successful"
 		defaults write "$resultslocation" GoogleMap -string "$googlemap"
 		# Even though this version of pinpoint has been deliberately written not to use Location Services at all
