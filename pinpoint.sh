@@ -233,7 +233,7 @@ if [ $resultcode != "200" ]; then
 		defaults write "$resultslocation" StaleLocation -string "Yes"
 		chmod 644 "$resultslocation"
 	fi
-	(($DEBUG)) && echo "Error: $reason">> "$debugLog"
+	(($DEBUG)) && echo "Error: $result">> "$debugLog"
 	exit 1
 fi
 #
@@ -296,13 +296,14 @@ if [ "$use_geocode" == "True" ]; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
-		(($DEBUG)) && echo "Error: $reason">> "$debugLog"
+		(($DEBUG)) && echo "Error: $result">> "$debugLog"
 		exit 1
 	fi
 	#
 	# Find first result which is usually best and strip unwanted characters from beginning and end of line
 	formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
 	defaults write "$resultslocation" Address -string "$formatted_address"
+	(($DEBUG)) && echo "$address">> "$debugLog"
 else
 	formatted_address=""
 fi
