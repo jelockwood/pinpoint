@@ -1,8 +1,7 @@
 #!/bin/sh
 # Copyright John E. Lockwood (2018-2019)
 
-# set DEBUG=1 to save debug log in /Library/Application Support/pinpoint/debug.log
-DEBUG=1
+defaults write /Library/Preferences/com.jelockwood.pinpoint DEBUG -bool TRUE
 
 #
 # pinpoint a script to find your Mac's location
@@ -14,7 +13,7 @@ DEBUG=1
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.0.3"
+versionstring="3.1.0"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -29,8 +28,18 @@ usage()
 	-h | --help		show this help message and exit
 	-g | --geocode		Use Geocode API to look up street address
 	-a | --altitude		Use Elevation API to look up altitude
-	-k | --key yourkeyhere	Specify your Google API key"
+	-k | --key yourkeyhere	Specify your Google API key
+	-d | --debug		Use Geocode API to look up street address
+	-o | --optim		Use optmisation to minimise Google API calls"
 }
+
+debugLog="/var/log/pinpoint.log"
+
+function DebugLog {
+	local text="$1"
+	[ $use_debug = "True" ] && echo "$1" >> "$debugLog" && echo "$1"
+}
+
 
 # Set your Google geolocation API key here
 # You can get an API key here https://developers.google.com/maps/documentation/geolocation/get-api-key
@@ -63,6 +72,12 @@ while [ "$1" != "" ]; do
 		-g | --geocode )		use_geocode=1
 						commandoptions=1
 						;;
+		-d | --debug )		use_debug=1
+						commandoptions=1
+						;;
+		-o | --optim )		use_optim=1
+						commandoptions=1
+						;;
 		-k | --key )			YOUR_API_KEY="$2"
 						commandoptions=1
 						shift
@@ -87,6 +102,8 @@ if [ $commandoptions -eq 0 ]; then
 
 	use_geocode=$(pref_value ${DOMAIN} "USE_GEOCODE")
 	use_altitude=$(pref_value ${DOMAIN} "USE_ALTITUDE")
+	use_debug=$(pref_value ${DOMAIN} "DEBUG")
+	use_optim=$(pref_value ${DOMAIN} "USE_OPTIMISE")
 	PREFERENCE_API_KEY=$(pref_value ${DOMAIN} "YOUR_API_KEY")
 	if [ ! -z "$PREFERENCE_API_KEY" ]; then
 		YOUR_API_KEY="$PREFERENCE_API_KEY"
@@ -100,14 +117,13 @@ if [ "$YOUR_API_KEY" == "pasteyourkeyhere" ] || [ "$YOUR_API_KEY" == "yourkeyher
 	echo "Invalid Google API key"
 	exit 1
 fi
-
+#
 
 #
 # Location of plist with results
 resultslocation="/Library/Application Support/pinpoint/location.plist"
-debugLog="/Library/Application Support/pinpoint/debug.log"
-(($DEBUG)) && echo "" >> "$debugLog"
-(($DEBUG)) && echo "### pinpoint run ###" >> "$debugLog"
+DebugLog ""
+DebugLog "### pinpoint run ###"
 #
 
 #
@@ -143,33 +159,37 @@ NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 16)}')"
 OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
 SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
-(($DEBUG)) && date >> "$debugLog"
-(($DEBUG)) && echo $OldAP $OldSignal >> "$debugLog"
-(($DEBUG)) && echo $NewAP $NewSignal >> "$debugLog"
-(($DEBUG)) && echo "signal change: $SignalChange" >> "$debugLog"
+DebugLog "$(date)"
+DebugLog "$OldAP $OldSignal"
+DebugLog "$NewAP $NewSignal"
+DebugLog "signal change: $SignalChange"
 
 if (( $SignalChange > 6 )) || (( $SignalChange < -6 )) ; then
 	moved=1
-	(($DEBUG)) && echo "significant signal change" >> "$debugLog"
+	DebugLog "significant signal change"
 else
 	moved=0
-	(($DEBUG)) && echo "no significant signal change" >> "$debugLog"
+	DebugLog "no significant signal change"
 fi
 if [ ${OldAP} == ${NewAP} ]; then
-	(($DEBUG)) && echo "same AP" >> "$debugLog"
+	DebugLog "same AP"
 else
-	(($DEBUG)) && echo "AP change" >> "$debugLog"
+	DebugLog "AP change"
 	moved=1
 fi
 
+LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
+LastAddress="$(defaults read "$resultslocation" Address)"
+
+
 if ! (( $moved ))  ; then
-	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
-	LastAddress="$(defaults read "$resultslocation" Address)"
+	DebugLog "Last status $LastStatus"
+	DebugLog "Last address $LastAddress"
 	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
-		echo "Running gelocation due to error last time"
-		(($DEBUG)) && echo "Running gelocation due to error last time" >> "$debugLog"
+		DebugLog "Running gelocation due to error last time"
 	else
-		(($DEBUG)) && echo "Boring wifi, leaving">> "$debugLog"
+		DebugLog "Boring wifi, leaving"
+		defaults write "$resultslocation" LastRun -string "$rundate"
 		exit 0
 	fi
 fi
@@ -217,7 +237,7 @@ IFS=$OLD_IFS
 #
 # Using list of BSSIDs formatted as JSON query Google for location
 #echo "$json"
-(($DEBUG)) && echo "Getting coordinates">> "$debugLog"
+DebugLog "Getting coordinates"
 result=$(curl -s -d "$json" -H "Content-Type: application/json" -i "https://www.googleapis.com/geolocation/v1/geolocate?key=$YOUR_API_KEY")
 echo "$result"
 #
@@ -233,7 +253,7 @@ if [ $resultcode != "200" ]; then
 		defaults write "$resultslocation" StaleLocation -string "Yes"
 		chmod 644 "$resultslocation"
 	fi
-	(($DEBUG)) && echo "Error: $result">> "$debugLog"
+	DebugLog "Error: $resultcode"
 	exit 1
 fi
 #
@@ -259,29 +279,28 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 oldLat=$(defaults read "$resultslocation" Latitude)
 oldLong=$(defaults read "$resultslocation" Longitude)
 
-latMove=$(python -c "print (($lat - $oldLat)*5000)")
-longMove=$(python -c "print (($long - $oldLong)*5000)")
+latMove=$(python -c "print (($lat - $oldLat)*3000)")
+longMove=$(python -c "print (($long - $oldLong)*3000)")
 
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
-(($DEBUG)) && echo "Moved: $latMove $longMove" >> "$debugLog"
+DebugLog "Moved: $latMove $longMove"
 
 if  (( $latMove )) || (( $longMove )) ; then
     echo ""
-	(($DEBUG)) && echo "Possible coordinate change, going to geocode" >> "$debugLog"
+	DebugLog "Possible coordinate change, going to geocode"
 else
 	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
-		echo "Running geocode due to error last time"
-		(($DEBUG)) && echo "Running geocode due to error last time" >> "$debugLog"
+		DebugLog "Running geocode due to error last time"
 	else
-		(($DEBUG)) && echo "geolocation done, no geocode needed" >> "$debugLog"
+		DebugLog "geolocation done, no geocode needed"
 		use_geocode="False"
 	fi	
 fi
 
 # Use Google to reverse geocode location to get street address
 if [ "$use_geocode" == "True" ]; then
-	(($DEBUG)) && echo "Getting geocode">> "$debugLog"
+	DebugLog "Getting geocode"
 	#address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long")
 	# If you get an error saying you need to supply a valid API key then try this line instead
 	address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long&key=$YOUR_API_KEY")
@@ -296,14 +315,14 @@ if [ "$use_geocode" == "True" ]; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
-		(($DEBUG)) && echo "Error: $result">> "$debugLog"
+		DebugLog "Error: $status"
 		exit 1
 	fi
 	#
 	# Find first result which is usually best and strip unwanted characters from beginning and end of line
 	formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
 	defaults write "$resultslocation" Address -string "$formatted_address"
-	(($DEBUG)) && echo "$address">> "$debugLog"
+	DebugLog "$formatted_address"
 else
 	formatted_address=""
 fi
@@ -320,7 +339,7 @@ if [ "$use_altitude" == "True" ]; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
-		(($DEBUG)) && echo "Error: $reason">> "$debugLog"
+		DebugLog "Error: $reason"
 		exit 1
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
