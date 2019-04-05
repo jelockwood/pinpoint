@@ -36,7 +36,6 @@ usage()
 debugLog="/var/log/pinpoint.log"
 
 function DebugLog {
-	local text="$1"
 	[ $use_debug = "True" ] && echo "$1" >> "$debugLog" && echo "$1"
 }
 
@@ -50,6 +49,7 @@ YOUR_API_KEY="pasteyourkeyhere"
 # Set initial default preference values
 use_geocode="True"
 use_altitude="False"
+use_optim="True"
 jamf=0
 commandoptions=0
 #
@@ -122,8 +122,6 @@ fi
 #
 # Location of plist with results
 resultslocation="/Library/Application Support/pinpoint/location.plist"
-DebugLog ""
-DebugLog "### pinpoint run ###"
 #
 
 #
@@ -131,6 +129,9 @@ DebugLog "### pinpoint run ###"
 # Get status of WiFi interface i.e. whether it is already turned on
 # If off turn it on as it is needed to get the list of BSSIDs in your location
 # It is not necessary to actually connect to any WiFi network
+DebugLog ""
+DebugLog "### pinpoint run ###"
+
 INTERFACE=$(networksetup -listallhardwareports | grep -A1 Wi-Fi | tail -1 | awk '{print $2}')
 STATUS=$(networksetup -getairportpower $INTERFACE | awk '{print $4}')
 if [ $STATUS = "Off" ] ; then
@@ -148,52 +149,54 @@ fi
 
 #
 # has wifi signal changed - if not then exit
-NewResult=""
-OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
-NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
-echo "$NewResult" > /tmp/pinpoint-wifi-scan.txt
-#
-# omit last char of MAC
-OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 16)}')"
-NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 16)}')"
-OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
-NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
-SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
-DebugLog "$(date)"
-DebugLog "$OldAP $OldSignal"
-DebugLog "$NewAP $NewSignal"
-DebugLog "signal change: $SignalChange"
+if [ "$use_optim" = "True" ] ; then
+	NewResult=""
+	OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
+	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
+	echo "$NewResult" > /tmp/pinpoint-wifi-scan.txt
+	#
+	# omit last char of MAC
+	OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 16)}')"
+	NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 16)}')"
+	OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
+	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
+	SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
+	DebugLog "$(date)"
+	DebugLog "$OldAP $OldSignal"
+	DebugLog "$NewAP $NewSignal"
+	DebugLog "signal change: $SignalChange"
 
-if (( $SignalChange > 6 )) || (( $SignalChange < -6 )) ; then
-	moved=1
-	DebugLog "significant signal change"
-else
-	moved=0
-	DebugLog "no significant signal change"
-fi
-if [ ${OldAP} == ${NewAP} ]; then
-	DebugLog "same AP"
-else
-	DebugLog "AP change"
-	moved=1
-fi
-
-LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
-LastAddress="$(defaults read "$resultslocation" Address)"
-
-
-if ! (( $moved ))  ; then
-	DebugLog "Last status $LastStatus"
-	DebugLog "Last address $LastAddress"
-	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
-		DebugLog "Running gelocation due to error last time"
+	if (( $SignalChange > 6 )) || (( $SignalChange < -6 )) ; then
+		moved=1
+		DebugLog "significant signal change"
 	else
-		DebugLog "Boring wifi, leaving"
-		defaults write "$resultslocation" LastRun -string "$rundate"
-		exit 0
+		moved=0
+		DebugLog "no significant signal change"
 	fi
-fi
+	if [ ${OldAP} == ${NewAP} ]; then
+		DebugLog "same AP"
+	else
+		DebugLog "AP change"
+		moved=1
+	fi
+
+	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
+	LastAddress="$(defaults read "$resultslocation" Address)"
+
+
+	if ! (( $moved ))  ; then
+		DebugLog "Last status $LastStatus"
+		DebugLog "Last address $LastAddress"
+		if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
+			DebugLog "Running gelocation due to error last time"
+		else
+			DebugLog "Boring wifi, leaving"
+			defaults write "$resultslocation" LastRun -string "$rundate"
+			exit 0
+		fi
+	fi
 #
+fi
 
 OLD_IFS=$IFS
 IFS="$"
