@@ -103,7 +103,7 @@ if [ $commandoptions -eq 0 ]; then
 	use_geocode=$(pref_value ${DOMAIN} "USE_GEOCODE")
 	use_altitude=$(pref_value ${DOMAIN} "USE_ALTITUDE")
 	use_debug=$(pref_value ${DOMAIN} "DEBUG")
-	use_optim=$(pref_value ${DOMAIN} "USE_OPTIMISE")
+	use_optim=$(pref_value ${DOMAIN} "OPTIMISE")
 	PREFERENCE_API_KEY=$(pref_value ${DOMAIN} "YOUR_API_KEY")
 	if [ ! -z "$PREFERENCE_API_KEY" ]; then
 		YOUR_API_KEY="$PREFERENCE_API_KEY"
