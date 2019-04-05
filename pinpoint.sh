@@ -1,9 +1,6 @@
 #!/bin/sh
 # Copyright John E. Lockwood (2018-2019)
 
-defaults write /Library/Preferences/com.jelockwood.pinpoint DEBUG -bool TRUE
-
-#
 # pinpoint a script to find your Mac's location
 #
 # see https://github.com/jelockwood/pinpoint
@@ -50,6 +47,7 @@ YOUR_API_KEY="pasteyourkeyhere"
 use_geocode="True"
 use_altitude="False"
 use_optim="True"
+use_debug="True"
 jamf=0
 commandoptions=0
 #
