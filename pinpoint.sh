@@ -1,6 +1,6 @@
 #!/bin/sh
 # Copyright John E. Lockwood (2018-2019)
-
+defaults write /Library/Preferences/com.jelockwood.pinpoint.plist OPTIMISE -bool TRUE
 # pinpoint a script to find your Mac's location
 #
 # see https://github.com/jelockwood/pinpoint
