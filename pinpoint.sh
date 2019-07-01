@@ -79,7 +79,7 @@ YOUR_API_KEY="pasteyourkeyhere"
 use_geocode="True"
 use_altitude="False"
 use_optim="True"
-use_debug="True"
+use_debug="False"
 jamf=0
 commandoptions=0
 #
