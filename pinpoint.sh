@@ -26,7 +26,7 @@ usage()
 	-g | --geocode		Use Geocode API to look up street address
 	-a | --altitude		Use Elevation API to look up altitude
 	-k | --key yourkeyhere	Specify your Google API key
-	-d | --debug		Use Geocode API to look up street address
+	-d | --debug		Log debug information
 	-o | --optim		Use optmisation to minimise Google API calls"
 }
 
