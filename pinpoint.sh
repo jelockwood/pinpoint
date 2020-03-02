@@ -138,7 +138,6 @@ if [ $commandoptions -eq 0 ]; then
 	if [ ! -z "$PREFERENCE_API_KEY" ]; then
 		YOUR_API_KEY="$PREFERENCE_API_KEY"
 	fi
-	echo $PREFERENCE_API_KEY aaaaaaaaaaaaaaa
 fi
 #
 # Validate YOUR_API_KEY
