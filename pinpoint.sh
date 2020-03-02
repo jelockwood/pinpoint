@@ -138,7 +138,7 @@ if [ $commandoptions -eq 0 ]; then
 	if [ ! -z "$PREFERENCE_API_KEY" ]; then
 		YOUR_API_KEY="$PREFERENCE_API_KEY"
 	fi
-
+	echo $PREFERENCE_API_KEY aaaaaaaaaaaaaaa
 fi
 #
 # Validate YOUR_API_KEY
@@ -281,7 +281,7 @@ echo "$result"
 # A 400 or 404 error might mean none of your detect WiFi BSSIDs are known to Google
 resultcode=`echo "$result" | grep "HTTP" | awk '{print $2}'`
 echo "Result code = $resultcode"
-if [ $resultcode != "200" ]; then
+if [ "$resultcode" != "200" ]; then
 	if [ -e "$resultslocation" ]; then
 		reason=`echo "$result" | grep "reason" | awk -F ": " '{print $2}'`
 		defaults write "$resultslocation" CurrentStatus -string "Error $resultcode - $reason"
