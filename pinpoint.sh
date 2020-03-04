@@ -278,7 +278,7 @@ echo "$result"
 #
 # Get HTTP result code, if 400 it implies it failed, if 200 it succeeded
 # A 400 or 404 error might mean none of your detect WiFi BSSIDs are known to Google
-resultcode=`echo "$result" | grep "HTTP" | awk '{print $2}'`
+resultcode=`echo "$result" | grep "HTTP/2" | awk '{print $2}'`
 echo "Result code = $resultcode"
 if [ "$resultcode" != "200" ]; then
 	if [ -e "$resultslocation" ]; then
