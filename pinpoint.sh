@@ -257,7 +257,7 @@ else
 		# This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
 		ls_enabled=`defaults read "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" LocationServicesEnabled`
 		echo "ls_enabled = $ls_enabled"
-		if [ "$ls_enabled" == "True" ]; then
+		if [ "$ls_enabled" == "1" ]; then
 			defaults write "$resultslocation" LS_Enabled -int 1
 		else
 			defaults write "$resultslocation" LS_Enabled -int 0
