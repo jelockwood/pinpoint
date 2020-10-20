@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright John E. Lockwood (2018-2019)
+# Copyright John E. Lockwood (2018-2020)
 #
 # pinpoint a script to find your Mac's location
 #
@@ -10,7 +10,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.0.3"
+versionstring="3.0.4"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -170,11 +170,11 @@ echo "$result"
 #
 # Get HTTP result code, if 400 it implies it failed, if 200 it succeeded
 # A 400 or 404 error might mean none of your detect WiFi BSSIDs are known to Google
-resultcode=`echo "$result" | grep "HTTP" | awk '{print $2}'`
+resultcode=`echo "$result" | grep "HTTP/2" | awk '{print $2}'`
 echo "Result code = $resultcode"
-if [ $resultcode != "200" ]; then
+if [ "$resultcode" != "200" ]; then
 	if [ -e "$resultslocation" ]; then
-		reason=`echo "$result" | grep "HTTP" | awk -F ": " '{print $2}'`
+		reason=`echo "$result" | grep "reason" | awk -F ": " '{print $2}'`
 		defaults write "$resultslocation" CurrentStatus -string "Error $resultcode - $reason"
 		defaults write "$resultslocation" LastRun -string "$rundate"
 		defaults write "$resultslocation" StaleLocation -string "Yes"
@@ -257,10 +257,10 @@ else
 		# This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
 		ls_enabled=`defaults read "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" LocationServicesEnabled`
 		echo "ls_enabled = $ls_enabled"
-		if [ "$ls_enabled" == "True" ]; then
-			defaults write "$resultslocation" LS_Enabled -bool TRUE
+		if [ "$ls_enabled" == "1" ]; then
+			defaults write "$resultslocation" LS_Enabled -int 1
 		else
-			defaults write "$resultslocation" LS_Enabled -bool FALSE
+			defaults write "$resultslocation" LS_Enabled -int 0
 		fi
 		defaults write "$resultslocation" LastLocationRun -string "$rundate"
 		defaults write "$resultslocation" LastRun -string "$rundate"
