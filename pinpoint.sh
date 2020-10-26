@@ -1,6 +1,6 @@
-#!/bin/bash
-# Copyright John E. Lockwood (2018-2019)
-######## defaults write /Library/Preferences/com.jelockwood.pinpoint.plist OPTIMISE -bool TRUE
+#!/bin/sh
+# Copyright John E. Lockwood (2018-2020)
+#
 # pinpoint a script to find your Mac's location
 #
 # see https://github.com/jelockwood/pinpoint
@@ -378,7 +378,6 @@ if [ "$use_altitude" == "True" ]; then
 		exit 1
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
-		defaults write "$resultslocation" Altitude -int "$altitude"
 	fi
 else
 	altitude="0"
@@ -388,6 +387,8 @@ if [ $jamf -eq 1 ]; then
 	echo "<result>$googlemap</result>"
 else
 	if [ -e "/Library/Preferences/com.jelockwood.pinpoint.plist" ]; then
+		defaults write "$resultslocation" Address -string "$formatted_address"
+		defaults write "$resultslocation" Altitude -int "$altitude"
 		defaults write "$resultslocation" CurrentStatus -string "Successful"
 		defaults write "$resultslocation" GoogleMap -string "$googlemap"
 		# Even though this version of pinpoint has been deliberately written not to use Location Services at all
@@ -395,10 +396,10 @@ else
 		# This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
 		ls_enabled=`defaults read "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" LocationServicesEnabled`
 		echo "ls_enabled = $ls_enabled"
-		if [ "$ls_enabled" == "True" ]; then
-			defaults write "$resultslocation" LS_Enabled -bool TRUE
+		if [ "$ls_enabled" == "1" ]; then
+			defaults write "$resultslocation" LS_Enabled -int 1
 		else
-			defaults write "$resultslocation" LS_Enabled -bool FALSE
+			defaults write "$resultslocation" LS_Enabled -int 0
 		fi
 		defaults write "$resultslocation" LastLocationRun -string "$rundate"
 		defaults write "$resultslocation" LastRun -string "$rundate"
