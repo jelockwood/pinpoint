@@ -195,7 +195,7 @@ if [ "$use_optim" = "True" ] ; then
 	DebugLog "$NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
 
-	if (( $SignalChange > 6 )) || (( $SignalChange < -6 )) ; then
+	if (( $SignalChange > 8 )) || (( $SignalChange < -8 )) ; then
 		moved=1
 		DebugLog "significant signal change"
 	else
