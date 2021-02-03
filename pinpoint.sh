@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright John E. Lockwood (2018-2020)
+# Copyright John E. Lockwood (2018-2021)
 #
 # pinpoint a script to find your Mac's location
 #
