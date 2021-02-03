@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright John E. Lockwood (2018-2020)
 #
 # pinpoint a script to find your Mac's location
@@ -10,7 +10,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.0.5"
+versionstring="3.1.1"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -25,7 +25,48 @@ usage()
 	-h | --help		show this help message and exit
 	-g | --geocode		Use Geocode API to look up street address
 	-a | --altitude		Use Elevation API to look up altitude
-	-k | --key yourkeyhere	Specify your Google API key"
+	-k | --key yourkeyhere	Specify your Google API key
+	-d | --debug		Log debug information
+	-o | --optim		Use optmisation to minimise Google API calls"
+}
+
+debugLog="/var/log/pinpoint.log"
+
+function DebugLog {
+	[ $use_debug = "True" ] && echo "$1" >> "$debugLog" && echo "$1"
+}
+
+# fuzzy string comparison 
+function levenshtein {
+    if [ "$#" -ne "2" ]; then
+        echo "Usage: $0 word1 word2" >&2
+    elif [ "${#1}" -lt "${#2}" ]; then
+        levenshtein "$2" "$1"
+    else
+        local str1len=$((${#1}))
+        local str2len=$((${#2}))
+        local d i j
+        for i in $(seq 0 $(((str1len+1)*(str2len+1)))); do
+            d[i]=0
+        done
+        for i in $(seq 0 $((str1len))); do
+            d[$((i+0*str1len))]=$i
+        done
+        for j in $(seq 0 $((str2len))); do
+            d[$((0+j*(str1len+1)))]=$j
+        done
+
+        for j in $(seq 1 $((str2len))); do
+            for i in $(seq 1 $((str1len))); do
+                [ "${1:i-1:1}" = "${2:j-1:1}" ] && local cost=0 || local cost=1
+                local del=$((d[(i-1)+str1len*j]+1))
+                local ins=$((d[i+str1len*(j-1)]+1))
+                local alt=$((d[(i-1)+str1len*(j-1)]+cost))
+                d[i+str1len*j]=$(echo -e "$del\n$ins\n$alt" | sort -n | head -1)
+            done
+        done
+        echo ${d[str1len+str1len*(str2len)]}
+    fi
 }
 
 # Set your Google geolocation API key here
@@ -37,6 +78,8 @@ YOUR_API_KEY="pasteyourkeyhere"
 # Set initial default preference values
 use_geocode="True"
 use_altitude="False"
+use_optim="True"
+use_debug="False"
 jamf=0
 commandoptions=0
 #
@@ -57,6 +100,12 @@ while [ "$1" != "" ]; do
 						commandoptions=1
 						;;
 		-g | --geocode )		use_geocode=1
+						commandoptions=1
+						;;
+		-d | --debug )		use_debug=1
+						commandoptions=1
+						;;
+		-o | --optim )		use_optim=1
 						commandoptions=1
 						;;
 		-k | --key )			YOUR_API_KEY="$2"
@@ -83,11 +132,12 @@ if [ $commandoptions -eq 0 ]; then
 
 	use_geocode=$(pref_value ${DOMAIN} "USE_GEOCODE")
 	use_altitude=$(pref_value ${DOMAIN} "USE_ALTITUDE")
+	use_debug=$(pref_value ${DOMAIN} "DEBUG")
+	use_optim=$(pref_value ${DOMAIN} "OPTIMISE")
 	PREFERENCE_API_KEY=$(pref_value ${DOMAIN} "YOUR_API_KEY")
 	if [ ! -z "$PREFERENCE_API_KEY" ]; then
 		YOUR_API_KEY="$PREFERENCE_API_KEY"
 	fi
-
 fi
 #
 # Validate YOUR_API_KEY
@@ -96,7 +146,7 @@ if [ "$YOUR_API_KEY" == "pasteyourkeyhere" ] || [ "$YOUR_API_KEY" == "yourkeyher
 	echo "Invalid Google API key"
 	exit 1
 fi
-
+#
 
 #
 # Location of plist with results
@@ -108,6 +158,9 @@ resultslocation="/Library/Application Support/pinpoint/location.plist"
 # Get status of WiFi interface i.e. whether it is already turned on
 # If off turn it on as it is needed to get the list of BSSIDs in your location
 # It is not necessary to actually connect to any WiFi network
+DebugLog ""
+DebugLog "### pinpoint run ###"
+
 INTERFACE=$(networksetup -listallhardwareports | grep -A1 Wi-Fi | tail -1 | awk '{print $2}')
 STATUS=$(networksetup -getairportpower $INTERFACE | awk '{print $4}')
 if [ $STATUS = "Off" ] ; then
@@ -121,6 +174,60 @@ gl_ssids=`/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Reso
 # We have finished using the WiFi if it was originally off we now turn it back off
 if [ $STATUS = "Off" ] ; then
     networksetup -setairportpower $INTERFACE off
+fi
+
+#
+# has wifi signal changed - if not then exit
+if [ "$use_optim" = "True" ] ; then
+	NewResult=""
+	OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
+	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
+	echo "$NewResult" > /tmp/pinpoint-wifi-scan.txt
+	#
+	# omit last char of MAC
+	OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 17)}')"
+	NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 17)}')"
+	OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
+	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
+	SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
+	DebugLog "$(date)"
+	DebugLog "$OldAP $OldSignal"
+	DebugLog "$NewAP $NewSignal"
+	DebugLog "signal change: $SignalChange"
+
+	if (( $SignalChange > 12 )) || (( $SignalChange < -12 )) ; then
+		moved=1
+		DebugLog "significant signal change"
+	else
+		moved=0
+		DebugLog "no significant signal change"
+	fi
+	[ $OldAP ] && [ $NewAP ] && APdiff=$(levenshtein "$OldAP" "$NewAP") || APdiff=17
+	if [ $APdiff -eq 0 ] ; then
+		DebugLog "same AP"
+	elif [ $APdiff -eq 1 ] ; then
+		DebugLog "same AP, different SSID"
+	else
+		DebugLog "AP change"
+		moved=1
+	fi
+
+	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
+	LastAddress="$(defaults read "$resultslocation" Address)"
+
+
+	if ! (( $moved ))  ; then
+		DebugLog "Last status $LastStatus"
+		DebugLog "Last address $LastAddress"
+		if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
+			DebugLog "Running gelocation due to error last time"
+		else
+			DebugLog "Boring wifi, leaving"
+			defaults write "$resultslocation" LastRun -string "$rundate"
+			exit 0
+		fi
+	fi
+#
 fi
 
 OLD_IFS=$IFS
@@ -165,6 +272,7 @@ IFS=$OLD_IFS
 #
 # Using list of BSSIDs formatted as JSON query Google for location
 #echo "$json"
+DebugLog "Getting coordinates"
 result=$(curl -s -d "$json" -H "Content-Type: application/json" -i "https://www.googleapis.com/geolocation/v1/geolocate?key=$YOUR_API_KEY")
 echo "$result"
 #
@@ -180,6 +288,7 @@ if [ "$resultcode" != "200" ]; then
 		defaults write "$resultslocation" StaleLocation -string "Yes"
 		chmod 644 "$resultslocation"
 	fi
+	DebugLog "Error: $resultcode"
 	exit 1
 fi
 #
@@ -199,8 +308,34 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 # Second version shows using satellite map view
 # googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!3m1!1e3"
 #
+
+# Calculate if device moved 
+# Get last coordinates
+oldLat=$(defaults read "$resultslocation" Latitude)
+oldLong=$(defaults read "$resultslocation" Longitude)
+
+latMove=$(python -c "print (($lat - $oldLat)*3000)")
+longMove=$(python -c "print (($long - $oldLong)*3000)")
+
+latMove=$(printf "%.0f\n" $latMove)
+longMove=$(printf "%.0f\n" $longMove)
+DebugLog "Moved: $latMove $longMove"
+
+if  (( $latMove )) || (( $longMove )) ; then
+    echo ""
+	DebugLog "Possible coordinate change, going to geocode"
+else
+	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
+		DebugLog "Running geocode due to error last time"
+	else
+		DebugLog "geolocation done, no geocode needed"
+		use_geocode="False"
+	fi	
+fi
+
 # Use Google to reverse geocode location to get street address
 if [ "$use_geocode" == "True" ]; then
+	DebugLog "Getting geocode"
 	#address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long")
 	# If you get an error saying you need to supply a valid API key then try this line instead
 	address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long&key=$YOUR_API_KEY")
@@ -215,11 +350,14 @@ if [ "$use_geocode" == "True" ]; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
+		DebugLog "Error: $status"
 		exit 1
 	fi
 	#
 	# Find first result which is usually best and strip unwanted characters from beginning and end of line
 	formatted_address=`echo "$address" | grep -m1 "formatted_address" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{2\}$//'`
+	defaults write "$resultslocation" Address -string "$formatted_address"
+	DebugLog "$formatted_address"
 else
 	formatted_address=""
 fi
@@ -236,6 +374,7 @@ if [ "$use_altitude" == "True" ]; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
+		DebugLog "Error: $reason"
 		exit 1
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
@@ -272,4 +411,5 @@ else
 		chmod 644 "$resultslocation"
 	fi
 fi
+
 exit 0
