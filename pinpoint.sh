@@ -18,7 +18,7 @@ rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 # help information
 usage()
 {
-    echo "usage: $scriptname [-V] [-j] [-h] [-g] [-a] [-k yourkeyhere]
+    echo "usage: $scriptname [-V] [-j] [-h] [-g] [-a] [-k yourkeyhere] [-d] [-o]
 	-V | --version		Print script version and exit
 	-j | --jamf		Return map URL only to stdout formatted as an
     				extension attribute for use with JAMF Pro
