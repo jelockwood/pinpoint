@@ -53,7 +53,7 @@
 															<key>PATH</key>
 															<string>../pinpoint.sh</string>
 															<key>PATH_TYPE</key>
-															<integer>3</integer>
+															<integer>1</integer>
 															<key>PERMISSIONS</key>
 															<integer>493</integer>
 															<key>TYPE</key>
@@ -242,7 +242,7 @@
 											<key>PATH</key>
 											<string>../com.jelockwood.pinpoint.plist</string>
 											<key>PATH_TYPE</key>
-											<integer>3</integer>
+											<integer>1</integer>
 											<key>PERMISSIONS</key>
 											<integer>420</integer>
 											<key>TYPE</key>
@@ -487,6 +487,8 @@
 				</dict>
 				<key>PAYLOAD_TYPE</key>
 				<integer>0</integer>
+				<key>PRESERVE_EXTENDED_ATTRIBUTES</key>
+				<false/>
 				<key>SHOW_INVISIBLE</key>
 				<false/>
 				<key>SPLIT_FORKS</key>
@@ -503,14 +505,14 @@
 					<key>PATH</key>
 					<string>postinstall.sh</string>
 					<key>PATH_TYPE</key>
-					<integer>3</integer>
+					<integer>1</integer>
 				</dict>
 				<key>PREINSTALL_PATH</key>
 				<dict>
 					<key>PATH</key>
 					<string>preinstall.sh</string>
 					<key>PATH_TYPE</key>
-					<integer>3</integer>
+					<integer>1</integer>
 				</dict>
 				<key>RESOURCES</key>
 				<array/>
@@ -540,7 +542,7 @@
 				<key>USE_HFS+_COMPRESSION</key>
 				<false/>
 				<key>VERSION</key>
-				<string>3.0.5</string>
+				<string>3.1.1</string>
 			</dict>
 			<key>TYPE</key>
 			<integer>0</integer>
