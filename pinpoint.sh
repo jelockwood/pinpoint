@@ -10,7 +10,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.1.0"
+versionstring="3.1.1"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -18,7 +18,7 @@ rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 # help information
 usage()
 {
-    echo "usage: $scriptname [-V] [-j] [-h] [-g] [-a] [-k yourkeyhere]
+    echo "usage: $scriptname [-V] [-j] [-h] [-g] [-a] [-k yourkeyhere] [-d] [-o]
 	-V | --version		Print script version and exit
 	-j | --jamf		Return map URL only to stdout formatted as an
     				extension attribute for use with JAMF Pro
@@ -183,19 +183,23 @@ if [ "$use_optim" = "True" ] ; then
 	OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
 	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
 	echo "$NewResult" > /tmp/pinpoint-wifi-scan.txt
+	echo NEWRES "$NewResult"
+	#exit
 	#
 	# omit last char of MAC
 	OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 17)}')"
 	NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 17)}')"
 	OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
+	test $OldSignal || OldSignal="0"
+	test $NewSignal || NewSignal="0"
 	SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
 	DebugLog "$(date)"
 	DebugLog "$OldAP $OldSignal"
 	DebugLog "$NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
 
-	if (( $SignalChange > 12 )) || (( $SignalChange < -12 )) ; then
+	if [ $SignalChange -gt 12 ] || [ $SignalChange -lt -12 ] ; then
 		moved=1
 		DebugLog "significant signal change"
 	else
