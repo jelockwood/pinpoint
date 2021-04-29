@@ -7,6 +7,15 @@
 #
 # Now written to not use Location Services
 #
+# Version 3.0 added a new feature contributed by Ofir Gil. This optional feature analyses 
+# the SSID list and compares it to the previous list to see if this indicates a big
+# enough change in location to justify calling the Google APIs again.
+#
+# The aim is to reduce the usage of the Google API calls and thereby either keep you within
+# the free allowance or at least reduce the cost.
+#
+# Many thanks are therefore given to Ofir Gil for this significant enhancement.
+#
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
