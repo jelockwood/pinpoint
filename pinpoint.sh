@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright John E. Lockwood (2018-2021)
+# Copyright John E. Lockwood (2018-2022)
 #
 # pinpoint a script to find your Mac's location
 #
@@ -19,7 +19,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.1.2"
+versionstring="3.2"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -136,7 +136,7 @@ if [ $commandoptions -eq 0 ]; then
 	readonly DOMAIN="com.jelockwood.pinpoint"
 	# Use CFPreferences no defaults command as it supports both local, managed and config profiles automatically
 	pref_value() {
-		/usr/bin/python -c "from Foundation import CFPreferencesCopyAppValue; print CFPreferencesCopyAppValue(\"$2\", \"$1\")"
+		osascript -l JavaScript -e "ObjC.import('Foundation'); ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('$1').objectForKey('$2'))"
 	}
 
 	use_geocode=$(pref_value ${DOMAIN} "USE_GEOCODE")
@@ -198,7 +198,7 @@ if [ "$use_optim" = "True" ] ; then
 	NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 17)}')"
 	OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
-	SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
+	SignalChange=$( echo "($OldSignal-$NewSignal)" | bc)
 	DebugLog "$(date)"
 	DebugLog "$OldAP $OldSignal"
 	DebugLog "$NewAP $NewSignal"
@@ -323,8 +323,8 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 oldLat=$(defaults read "$resultslocation" Latitude)
 oldLong=$(defaults read "$resultslocation" Longitude)
 
-latMove=$(python -c "print (($lat - $oldLat)*3000)")
-longMove=$(python -c "print (($long - $oldLong)*3000)")
+latMove=$(echo "($lat - $oldLat) * 3000" | bc)
+longMove=$(echo "($long - $oldLong) * 3000" | bc)
 
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
