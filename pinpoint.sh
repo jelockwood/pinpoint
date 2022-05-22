@@ -191,7 +191,7 @@ if [ "$use_optim" = "True" ] ; then
 	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
 	test $OldSignal || OldSignal="0"
 	test $NewSignal || NewSignal="0"
-	SignalChange=$(python -c "print ($OldSignal - $NewSignal)")
+	SignalChange=$(/usr/local/munkireport/munkireport-python3 -c "print ($OldSignal - $NewSignal)")
 	DebugLog "$(date)"
 	DebugLog "$OldAP $OldSignal"
 	DebugLog "$NewAP $NewSignal"
@@ -316,8 +316,8 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 oldLat=$(defaults read "$resultslocation" Latitude)
 oldLong=$(defaults read "$resultslocation" Longitude)
 
-latMove=$(python -c "print (($lat - $oldLat)*3000)")
-longMove=$(python -c "print (($long - $oldLong)*3000)")
+latMove=$(/usr/local/munkireport/munkireport-python3 -c "print (($lat - $oldLat)*3000)")
+longMove=$(/usr/local/munkireport/munkireport-python3 -c "print (($long - $oldLong)*3000)")
 
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
