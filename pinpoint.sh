@@ -127,7 +127,7 @@ if [ $commandoptions -eq 0 ]; then
 	readonly DOMAIN="com.jelockwood.pinpoint"
 	# Use CFPreferences no defaults command as it supports both local, managed and config profiles automatically
 	pref_value() {
-		/usr/bin/python -c "from Foundation import CFPreferencesCopyAppValue; print CFPreferencesCopyAppValue(\"$2\", \"$1\")"
+		/usr/local/munkireport/munkireport-python3 -c "from Foundation import CFPreferencesCopyAppValue; print CFPreferencesCopyAppValue(\"$2\", \"$1\")"
 	}
 
 	use_geocode=$(pref_value ${DOMAIN} "USE_GEOCODE")
