@@ -7,7 +7,7 @@
 #
 # Now written to not use Location Services
 #
-# Version 3.0 added a new feature contributed by Ofir Gil. This optional feature analyses 
+# Version 3.0 added a new feature contributed by Ofir Gal. This optional feature analyses 
 # the SSID list and compares it to the previous list to see if this indicates a big
 # enough change in location to justify calling the Google APIs again.
 #
