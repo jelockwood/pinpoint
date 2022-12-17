@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright John E. Lockwood (2018-2020)
+# Copyright John E. Lockwood (2018-2022)
 #
 # pinpoint a script to find your Mac's location
 #
@@ -7,10 +7,19 @@
 #
 # Now written to not use Location Services
 #
+# Version 3.0 added a new feature contributed by Ofir Gal. This optional feature analyses 
+# the SSID list and compares it to the previous list to see if this indicates a big
+# enough change in location to justify calling the Google APIs again.
+#
+# The aim is to reduce the usage of the Google API calls and thereby either keep you within
+# the free allowance or at least reduce the cost.
+#
+# Many thanks are therefore given to Ofir Gil for this significant enhancement.
+#
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.1.1"
+versionstring="3.2.1"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -127,7 +136,7 @@ if [ $commandoptions -eq 0 ]; then
 	readonly DOMAIN="com.jelockwood.pinpoint"
 	# Use CFPreferences no defaults command as it supports both local, managed and config profiles automatically
 	pref_value() {
-		/usr/local/munkireport/munkireport-python3 -c "from Foundation import CFPreferencesCopyAppValue; print CFPreferencesCopyAppValue(\"$2\", \"$1\")"
+		osascript -l JavaScript -e "ObjC.import('Foundation'); ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('$1').objectForKey('$2'))"
 	}
 
 	use_geocode=$(pref_value ${DOMAIN} "USE_GEOCODE")
@@ -191,13 +200,13 @@ if [ "$use_optim" = "True" ] ; then
 	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
 	test $OldSignal || OldSignal="0"
 	test $NewSignal || NewSignal="0"
-	SignalChange=$(/usr/local/munkireport/munkireport-python3 -c "print ($OldSignal - $NewSignal)")
+	SignalChange=$( echo "($OldSignal-$NewSignal)" | bc)
 	DebugLog "$(date)"
 	DebugLog "$OldAP $OldSignal"
 	DebugLog "$NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
 
-	if [ $SignalChange -gt 12 ] || [ $SignalChange -lt -12 ] ; then
+	if (( $SignalChange > 12 )) || (( $SignalChange < -12 )) ; then
 		moved=1
 		DebugLog "significant signal change"
 	else
@@ -316,8 +325,8 @@ googlemap="https://www.google.com/maps/place/$lat,$long/@$lat,$long,18z/data=!4m
 oldLat=$(defaults read "$resultslocation" Latitude)
 oldLong=$(defaults read "$resultslocation" Longitude)
 
-latMove=$(/usr/local/munkireport/munkireport-python3 -c "print (($lat - $oldLat)*3000)")
-longMove=$(/usr/local/munkireport/munkireport-python3 -c "print (($long - $oldLong)*3000)")
+latMove=$(echo "($lat - $oldLat) * 3000" | bc)
+longMove=$(echo "($long - $oldLong) * 3000" | bc)
 
 latMove=$(printf "%.0f\n" $latMove)
 longMove=$(printf "%.0f\n" $longMove)
