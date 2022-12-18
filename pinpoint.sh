@@ -198,6 +198,8 @@ if [ "$use_optim" = "True" ] ; then
 	NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 17)}')"
 	OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
 	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
+	test $OldSignal || OldSignal="0"
+	test $NewSignal || NewSignal="0"
 	SignalChange=$( echo "($OldSignal-$NewSignal)" | bc)
 	DebugLog "$(date)"
 	DebugLog "$OldAP $OldSignal"
