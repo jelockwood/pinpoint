@@ -14,7 +14,7 @@
 # The aim is to reduce the usage of the Google API calls and thereby either keep you within
 # the free allowance or at least reduce the cost.
 #
-# Many thanks are therefore given to Ofir Gil for this significant enhancement.
+# Many thanks are therefore given to Ofir Gal for this significant enhancement.
 #
 # Script name
 scriptname=$(basename -- "$0")
@@ -42,7 +42,10 @@ usage()
 debugLog="/var/log/pinpoint.log"
 
 function DebugLog {
-	[ $use_debug = "True" ] && echo "$1" >> "$debugLog" && echo "$1"
+	if [[ "${use_debug}" == "True" ]] || [[ "${use_debug}" == "true" ]] ; then
+		echo "$1" >> "$debugLog"
+		echo "$1"
+	fi
 }
 
 # fuzzy string comparison 
@@ -187,7 +190,7 @@ fi
 
 #
 # has wifi signal changed - if not then exit
-if [ "$use_optim" = "True" ] ; then
+if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	NewResult=""
 	OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
 	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
@@ -200,13 +203,13 @@ if [ "$use_optim" = "True" ] ; then
 	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
 	test $OldSignal || OldSignal="0"
 	test $NewSignal || NewSignal="0"
-	SignalChange=$( echo "($OldSignal-$NewSignal)" | bc)
+	let SignalChange=OldSignal-NewSignal
 	DebugLog "$(date)"
 	DebugLog "$OldAP $OldSignal"
 	DebugLog "$NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
-
-	if (( $SignalChange > 12 )) || (( $SignalChange < -12 )) ; then
+	thrshld=12
+	if (( SignalChange > thrshld )) || (( SignalChange < -thrshld )) ; then
 		moved=1
 		DebugLog "significant signal change"
 	else
@@ -225,7 +228,6 @@ if [ "$use_optim" = "True" ] ; then
 
 	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
 	LastAddress="$(defaults read "$resultslocation" Address)"
-
 
 	if ! (( $moved ))  ; then
 		DebugLog "Last status $LastStatus"
@@ -345,7 +347,7 @@ else
 fi
 
 # Use Google to reverse geocode location to get street address
-if [ "$use_geocode" == "True" ]; then
+if [[ "${use_geocode}" == "True" ]] || [[ "${use_geocode}" == "true" ]] ; then
 	DebugLog "Getting geocode"
 	#address=$(curl -s "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$long")
 	# If you get an error saying you need to supply a valid API key then try this line instead
@@ -374,7 +376,7 @@ else
 fi
 #
 # Use Google to find elevation aka altitude
-if [ "$use_altitude" == "True" ]; then
+if [[ "${use_altitude}" == "True" ]] || [[ "${use_altitude}" == "true" ]] ; then
 	altitude_result=$(curl -s "https://maps.googleapis.com/maps/api/elevation/json?locations=$lat,$long&key=$YOUR_API_KEY")
 	altitude_status=`echo "$altitude_result" | grep -m1 "status" | awk -F ":" '{print $2}' | sed -e 's/^ "//' -e 's/.\{1\}$//'`
 	if [ "$altitude_status" != "OK" ]; then
