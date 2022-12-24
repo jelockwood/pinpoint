@@ -192,9 +192,9 @@ fi
 # has wifi signal changed - if not then exit
 if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	NewResult=""
-	OldResult="$(cat /tmp/pinpoint-wifi-scan.txt)" || OldResult=""
+	OldResult="$(cat /Library/Application Support/pinpoint/pinpoint-wifi-scan.txt)" || OldResult=""
 	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
-	echo "$NewResult" > /tmp/pinpoint-wifi-scan.txt
+	echo "$NewResult" > /Library/Application Support/pinpoint/pinpoint-wifi-scan.txt
 	#
 	# omit last char of MAC
 	OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 17)}')"
