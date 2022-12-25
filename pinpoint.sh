@@ -155,7 +155,7 @@ fi
 # Validate YOUR_API_KEY
 # If not valid from built-in, command-line or preference file via all of above then exit with error
 if [ "$YOUR_API_KEY" == "pasteyourkeyhere" ] || [ "$YOUR_API_KEY" == "yourkeyhere" ] || [ -z "$YOUR_API_KEY" ]; then
-	echo "Invalid Google API key"
+	DebugLog "Invalid Google API key"
 	exit 1
 fi
 #
@@ -172,6 +172,7 @@ resultslocation="/Library/Application Support/pinpoint/location.plist"
 # It is not necessary to actually connect to any WiFi network
 DebugLog ""
 DebugLog "### pinpoint run ###"
+DebugLog "$(date)"
 
 INTERFACE=$(networksetup -listallhardwareports | grep -A1 Wi-Fi | tail -1 | awk '{print $2}')
 STATUS=$(networksetup -getairportpower $INTERFACE | awk '{print $4}')
@@ -188,25 +189,31 @@ if [ $STATUS = "Off" ] ; then
     networksetup -setairportpower $INTERFACE off
 fi
 
+# Even though this version of pinpoint has been deliberately written not to use Location Services at all
+# we check to see if Location services is or is not enabled and report this.
+# This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
+ls_enabled=`defaults read "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" LocationServicesEnabled`
+if [ "$ls_enabled" == "1" ]; then
+	defaults write "$resultslocation" LS_Enabled -int 1
+	DebugLog "Location services: Enabled"
+else
+	defaults write "$resultslocation" LS_Enabled -int 0
+	DebugLog "Location services: Disabled"
+fi
+
 #
 # has wifi signal changed - if not then exit
 if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
-	NewResult=""
-	OldResult="$(cat /Library/Application\ Support/pinpoint/pinpoint-wifi-scan.txt)" || OldResult=""
-	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)"
-	echo "$NewResult" > "/Library/Application Support/pinpoint/pinpoint-wifi-scan.txt"
-	#
-	# omit last char of MAC
-	OldAP="$(echo "$OldResult" | awk '{print substr($0, 1, 17)}')"
-	NewAP="$(echo "$NewResult" | awk '{print substr($0, 1, 17)}')"
-	OldSignal="$(echo "$OldResult" | awk '{print substr($0, 19, 4)}')"
-	NewSignal="$(echo "$NewResult" | awk '{print substr($0, 19, 4)}')"
-	test $OldSignal || OldSignal="0"
-	test $NewSignal || NewSignal="0"
+	OldAP=`defaults read "/Library/Application Support/pinpoint/location.plist" TopAP`
+	OldSignal=`defaults read "/Library/Application Support/pinpoint/location.plist" Signal` || OldSignal="0"
+	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)" || NewResult=""
+	NewAP="$(echo "$NewResult" | cut -f1 -d '$')" || NewAP=""
+	NewSignal="$(echo "$NewResult" | cut -f2 -d '$')" || NewSignal="0"
+	defaults write "$resultslocation" TopAP "$NewAP"
+	defaults write "$resultslocation" Signal "$NewSignal"
 	let SignalChange=OldSignal-NewSignal
-	DebugLog "$(date)"
-	DebugLog "$OldAP $OldSignal"
-	DebugLog "$NewAP $NewSignal"
+	DebugLog "Old AP: $OldAP $OldSignal"
+	DebugLog "New AP: $NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
 	thrshld=12
 	if (( SignalChange > thrshld )) || (( SignalChange < -thrshld )) ; then
@@ -230,8 +237,8 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	LastAddress="$(defaults read "$resultslocation" Address)"
 
 	if ! (( $moved ))  ; then
-		DebugLog "Last status $LastStatus"
-		DebugLog "Last address $LastAddress"
+		DebugLog "Last error: $LastStatus"
+		DebugLog "Last address: $LastAddress"
 		if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
 			DebugLog "Running gelocation due to error last time"
 		else
@@ -399,28 +406,17 @@ fi
 if [ $jamf -eq 1 ]; then
 	echo "<result>$googlemap</result>"
 else
-	if [ -e "/Library/Preferences/com.jelockwood.pinpoint.plist" ]; then
-		defaults write "$resultslocation" Address -string "$formatted_address"
-		defaults write "$resultslocation" Altitude -int "$altitude"
+	if [ -f "/Library/Preferences/com.jelockwood.pinpoint.plist" ]; then
+		[ "$formatted_address" ] && defaults write "$resultslocation" Address -string "$formatted_address"
+		[ "$altitude" ] && defaults write "$resultslocation" Altitude -int "$altitude"
+		[ "$googlemap" ] && defaults write "$resultslocation" GoogleMap -string "$googlemap"
+		[ "$rundate" ] && defaults write "$resultslocation" LastLocationRun -string "$rundate"
+		[ "$rundate" ] && defaults write "$resultslocation" LastRun -string "$rundate"
+		[ "$lat" ] && defaults write "$resultslocation" Latitude -string "$lat"
+		[ "$accuracy" ] && defaults write "$resultslocation" LatitudeAccuracy -int "$accuracy"
+		[ "$long" ] && defaults write "$resultslocation" Longitude -string "$long"
+		[ "$accuracy" ] && defaults write "$resultslocation" LongitudeAccuracy -int "$accuracy"
 		defaults write "$resultslocation" CurrentStatus -string "Successful"
-		defaults write "$resultslocation" GoogleMap -string "$googlemap"
-		# Even though this version of pinpoint has been deliberately written not to use Location Services at all
-		# we check to see if Location services is or is not enabled and report this.
-		# This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
-		ls_enabled=`defaults read "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" LocationServicesEnabled`
-		if [ "$ls_enabled" == "1" ]; then
-			defaults write "$resultslocation" LS_Enabled -int 1
-			echo "Location services: Enabled"
-		else
-			defaults write "$resultslocation" LS_Enabled -int 0
-			echo "Location services: Disabled"
-		fi
-		defaults write "$resultslocation" LastLocationRun -string "$rundate"
-		defaults write "$resultslocation" LastRun -string "$rundate"
-		defaults write "$resultslocation" Latitude -string "$lat"
-		defaults write "$resultslocation" LatitudeAccuracy -int "$accuracy"
-		defaults write "$resultslocation" Longitude -string "$long"
-		defaults write "$resultslocation" LongitudeAccuracy -int "$accuracy"
 		defaults write "$resultslocation" StaleLocation -string "No"
 		chmod 644 "$resultslocation"
 	fi
