@@ -215,7 +215,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	DebugLog "Old AP: $OldAP $OldSignal"
 	DebugLog "New AP: $NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
-	thrshld=12
+	thrshld=20
 	if (( SignalChange > thrshld )) || (( SignalChange < -thrshld )) ; then
 		moved=1
 		DebugLog "significant signal change"
