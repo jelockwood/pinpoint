@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright John E. Lockwood (2018-2022)
+# Copyright John E. Lockwood (2018-2024)
 #
 # pinpoint a script to find your Mac's location
 #
@@ -19,7 +19,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.3"
+versionstring="3.2.4"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
