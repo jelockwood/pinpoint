@@ -215,7 +215,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	DebugLog "Old AP: $OldAP $OldSignal"
 	DebugLog "New AP: $NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
-	thrshld=12
+	thrshld=18
 	if (( SignalChange > thrshld )) || (( SignalChange < -thrshld )) ; then
 		moved=1
 		DebugLog "significant signal change"
@@ -233,7 +233,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 		moved=1
 	fi
 
-	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
+	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep Error)"
 	LastAddress="$(defaults read "$resultslocation" Address)"
 
 	if ! (( $moved ))  ; then
