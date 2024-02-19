@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright John E. Lockwood (2018-2022)
+# Copyright John E. Lockwood (2018-2024)
 #
 # pinpoint a script to find your Mac's location
 #
@@ -19,7 +19,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.3"
+versionstring="3.2.4"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -189,6 +189,12 @@ if [ $STATUS = "Off" ] ; then
     networksetup -setairportpower $INTERFACE off
 fi
 
+if [[ -z "${gl_ssids}" ]]; then
+	DebugLog "airport cmd failed"
+	exit 1
+fi
+
+
 # Even though this version of pinpoint has been deliberately written not to use Location Services at all
 # we check to see if Location services is or is not enabled and report this.
 # This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
@@ -215,7 +221,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	DebugLog "Old AP: $OldAP $OldSignal"
 	DebugLog "New AP: $NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
-	thrshld=12
+	thrshld=18
 	if (( SignalChange > thrshld )) || (( SignalChange < -thrshld )) ; then
 		moved=1
 		DebugLog "significant signal change"
@@ -223,6 +229,12 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 		moved=0
 		DebugLog "no significant signal change"
 	fi
+
+	if [[ "${NewAP}" == "" ]]; then
+		DebugLog "blank AP - problem, quitting"
+		exit 1
+	fi
+	
 	[ $OldAP ] && [ $NewAP ] && APdiff=$(levenshtein "$OldAP" "$NewAP") || APdiff=17
 	if [ $APdiff -eq 0 ] ; then
 		DebugLog "same AP"
@@ -233,7 +245,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 		moved=1
 	fi
 
-	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep 403)"
+	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep Error)"
 	LastAddress="$(defaults read "$resultslocation" Address)"
 
 	if ! (( $moved ))  ; then
