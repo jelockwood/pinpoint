@@ -189,6 +189,12 @@ if [ $STATUS = "Off" ] ; then
     networksetup -setairportpower $INTERFACE off
 fi
 
+if [[ -z "${gl_ssids}" ]]; then
+	DebugLog "airport cmd failed"
+	exit 1
+fi
+
+
 # Even though this version of pinpoint has been deliberately written not to use Location Services at all
 # we check to see if Location services is or is not enabled and report this.
 # This is done in order to be backwards compatible with the previous Location Services based version of pinpoint
@@ -223,6 +229,12 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 		moved=0
 		DebugLog "no significant signal change"
 	fi
+
+	if [[ "${NewAP}" == "" ]]; then
+		DebugLog "blank AP - problem, quitting"
+		exit 1
+	fi
+	
 	[ $OldAP ] && [ $NewAP ] && APdiff=$(levenshtein "$OldAP" "$NewAP") || APdiff=17
 	if [ $APdiff -eq 0 ] ; then
 		DebugLog "same AP"
