@@ -81,6 +81,8 @@ function levenshtein {
     fi
 }
 
+levenshtein "dc:ed:69:a1:a2:a8" "db:eb:69:a1:a2:b7"
+
 # Set your Google geolocation API key here
 # You can get an API key here https://developers.google.com/maps/documentation/geolocation/get-api-key
 #
@@ -171,7 +173,7 @@ resultslocation="/Library/Application Support/pinpoint/location.plist"
 # If off turn it on as it is needed to get the list of BSSIDs in your location
 # It is not necessary to actually connect to any WiFi network
 DebugLog ""
-DebugLog "### pinpoint run ###"
+DebugLog "### pinpoint $versionstring run ###"
 DebugLog "$(date)"
 
 INTERFACE=$(networksetup -listallhardwareports | grep -A1 Wi-Fi | tail -1 | awk '{print $2}')
@@ -222,6 +224,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	DebugLog "New AP: $NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
 	thrshld=18
+	moved=0
 	if (( SignalChange > thrshld )) || (( SignalChange < -thrshld )) ; then
 		moved=1
 		DebugLog "significant signal change"
@@ -236,10 +239,14 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	fi
 	
 	[ $OldAP ] && [ $NewAP ] && APdiff=$(levenshtein "$OldAP" "$NewAP") || APdiff=17
+	
+	# check how much alike are the AP MAC addresses
 	if [ $APdiff -eq 0 ] ; then
 		DebugLog "same AP"
 	elif [ $APdiff -eq 1 ] ; then
-		DebugLog "same AP, different SSID"
+		DebugLog "same AP, different MAC"
+	elif [ $APdiff -eq 2 ] ; then
+		DebugLog "probably same AP, different MAC"
 	else
 		DebugLog "AP change"
 		moved=1
