@@ -171,7 +171,7 @@ resultslocation="/Library/Application Support/pinpoint/location.plist"
 # If off turn it on as it is needed to get the list of BSSIDs in your location
 # It is not necessary to actually connect to any WiFi network
 DebugLog ""
-DebugLog "### pinpoint run ###"
+DebugLog "### pinpoint $versionstring run ###"
 DebugLog "$(date)"
 
 INTERFACE=$(networksetup -listallhardwareports | grep -A1 Wi-Fi | tail -1 | awk '{print $2}')
@@ -215,6 +215,10 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)" || NewResult=""
 	NewAP="$(echo "$NewResult" | cut -f1 -d '$')" || NewAP=""
 	NewSignal="$(echo "$NewResult" | cut -f2 -d '$')" || NewSignal="0"
+	if [[ "${NewAP}" == "" ]]; then
+		DebugLog "blank AP - problem, quitting"
+		exit 1
+	fi
 	defaults write "$resultslocation" TopAP "$NewAP"
 	defaults write "$resultslocation" Signal "$NewSignal"
 	let SignalChange=OldSignal-NewSignal
@@ -222,6 +226,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	DebugLog "New AP: $NewAP $NewSignal"
 	DebugLog "signal change: $SignalChange"
 	thrshld=18
+	moved=0
 	if (( SignalChange > thrshld )) || (( SignalChange < -thrshld )) ; then
 		moved=1
 		DebugLog "significant signal change"
@@ -229,17 +234,16 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 		moved=0
 		DebugLog "no significant signal change"
 	fi
-
-	if [[ "${NewAP}" == "" ]]; then
-		DebugLog "blank AP - problem, quitting"
-		exit 1
-	fi
 	
 	[ $OldAP ] && [ $NewAP ] && APdiff=$(levenshtein "$OldAP" "$NewAP") || APdiff=17
+	
+	# check how much alike are the AP MAC addresses
 	if [ $APdiff -eq 0 ] ; then
 		DebugLog "same AP"
 	elif [ $APdiff -eq 1 ] ; then
-		DebugLog "same AP, different SSID"
+		DebugLog "same AP, different MAC"
+	elif [ $APdiff -eq 2 ] ; then
+		DebugLog "probably same AP, different MAC"
 	else
 		DebugLog "AP change"
 		moved=1
