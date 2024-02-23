@@ -81,8 +81,6 @@ function levenshtein {
     fi
 }
 
-levenshtein "dc:ed:69:a1:a2:a8" "db:eb:69:a1:a2:b7"
-
 # Set your Google geolocation API key here
 # You can get an API key here https://developers.google.com/maps/documentation/geolocation/get-api-key
 #
