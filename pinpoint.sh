@@ -215,6 +215,10 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)" || NewResult=""
 	NewAP="$(echo "$NewResult" | cut -f1 -d '$')" || NewAP=""
 	NewSignal="$(echo "$NewResult" | cut -f2 -d '$')" || NewSignal="0"
+	if [[ "${NewAP}" == "" ]]; then
+		DebugLog "blank AP - problem, quitting"
+		exit 1
+	fi
 	defaults write "$resultslocation" TopAP "$NewAP"
 	defaults write "$resultslocation" Signal "$NewSignal"
 	let SignalChange=OldSignal-NewSignal
@@ -229,11 +233,6 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	else
 		moved=0
 		DebugLog "no significant signal change"
-	fi
-
-	if [[ "${NewAP}" == "" ]]; then
-		DebugLog "blank AP - problem, quitting"
-		exit 1
 	fi
 	
 	[ $OldAP ] && [ $NewAP ] && APdiff=$(levenshtein "$OldAP" "$NewAP") || APdiff=17
