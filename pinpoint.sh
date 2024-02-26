@@ -19,7 +19,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.6"
+versionstring="3.2.7b"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -249,21 +249,23 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 		moved=1
 	fi
 
-	LastStatus="$(defaults read "$resultslocation" CurrentStatus | grep Error)"
+	LastError="$(defaults read "$resultslocation" CurrentStatus | grep Error)"
 	LastAddress="$(defaults read "$resultslocation" Address)"
 
-	if ! (( $moved ))  ; then
-		DebugLog "Last error: $LastStatus"
-		DebugLog "Last address: $LastAddress"
-		if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
-			DebugLog "Running gelocation due to error last time"
-		else
-			DebugLog "Boring wifi, leaving"
-			defaults write "$resultslocation" LastRun -string "$rundate"
-			exit 0
-		fi
+	DebugLog "Last error: $LastError"
+	DebugLog "Last address: $LastAddress"
+	
+	if [[ -n "${LastError}" ]] ; then
+		DebugLog "Running gelocation due to error last time"
 	fi
-#
+
+	if (( moved == 1 )) || [[ -n "${LastError}" ]] ; then
+		DebugLog "Running gelocation"
+	else
+		DebugLog "Boring wifi, leaving"
+		defaults write "$resultslocation" LastRun -string "$rundate"
+		exit 0
+	fi
 fi
 
 OLD_IFS=$IFS
@@ -361,7 +363,7 @@ if  (( $latMove )) || (( $longMove )) ; then
     echo ""
 	DebugLog "Possible coordinate change, going to geocode"
 else
-	if [ "$LastStatus" ] || [ -z "$LastAddress" ] ; then
+	if [[ -n "${LastError}" ]] || [ -z "${LastAddress}" ] ; then
 		DebugLog "Running geocode due to error last time"
 	else
 		DebugLog "geolocation done, no geocode needed"
