@@ -11,6 +11,7 @@
 #
 # Still to do -
 # 1. Automate picking the correct network interface as it is not always guaranteed to be 'en0'
+# [item 1 now done]
 # 2. Update the script to produce results in an identical format to that produced by the former airport binary
 
 import objc
@@ -21,7 +22,8 @@ objc.loadBundle(
 )
 from CoreWLAN import CWNetwork, CWWiFiClient
 client = CWWiFiClient.sharedWiFiClient()
-iface = client.interfaceWithName_("en0")
+iface = CWWiFiClient.sharedWiFiClient().interface()
+# iface = client.interfaceWithName_("en0")
 networks, error = iface.scanForNetworksWithName_error_(
     None,
     None,
