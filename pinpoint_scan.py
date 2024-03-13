@@ -21,7 +21,7 @@ objc.loadBundle(
     module_globals=globals()
 )
 from CoreWLAN import CWNetwork, CWWiFiClient
-client = CWWiFiClient.sharedWiFiClient()
+# client = CWWiFiClient.sharedWiFiClient()
 iface = CWWiFiClient.sharedWiFiClient().interface()
 # iface = client.interfaceWithName_("en0")
 networks, error = iface.scanForNetworksWithName_error_(
