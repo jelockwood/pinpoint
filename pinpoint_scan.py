@@ -42,4 +42,3 @@ for i in networks:
     rssistr = str(i.rssiValue()).ljust(4)
     channelstr = str(i.channel()).ljust(8)
     print(ssidstr,bssidstr,rssistr,channelstr)
-#    print({'SSID': i.ssid(), 'BSSID': i.bssid(), 'RSSI': i.rssiValue(), 'CHANNEL': i.channel()})
