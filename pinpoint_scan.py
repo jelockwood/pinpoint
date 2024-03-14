@@ -23,13 +23,23 @@ objc.loadBundle(
 from CoreWLAN import CWNetwork, CWWiFiClient
 # client = CWWiFiClient.sharedWiFiClient()
 iface = CWWiFiClient.sharedWiFiClient().interface()
-# iface = client.interfaceWithName_("en0")
+# iface = client.interfaceWithName_("en1")
 networks, error = iface.scanForNetworksWithName_error_(
     None,
     None,
 )
+# print(networks)
 
+print("                            SSID BSSID             RSSI CHANNEL HT CC SECURITY (auth/unicast/group)")
 for i in networks:
     if i.ssid() is None:
-         continue
-    print({'SSID_STR': i.ssid(), 'BSSID': i.bssid(), 'RSSI': i.rssiValue(), 'CHANNEL': i.channel()})
+        continue
+    ssidstr = i.ssid().rjust(32)
+    if not i.bssid():
+        bssidstr = " ".ljust(17)
+    if i.bssid():
+        bssidstr = i.bssid().ljust(17)
+    rssistr = str(i.rssiValue()).ljust(4)
+    channelstr = str(i.channel()).ljust(8)
+    print(ssidstr,bssidstr,rssistr,channelstr)
+#    print({'SSID': i.ssid(), 'BSSID': i.bssid(), 'RSSI': i.rssiValue(), 'CHANNEL': i.channel()})
