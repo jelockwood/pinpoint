@@ -1,5 +1,12 @@
 #!/usr/local/bin/managed_python3
 
+# Many thanks in particular go to @thewade. He greatly helped with how to format the output as required, how to retrieve
+# certain fields of information via CoreWLAN, and also especially helped with the fact that - perhaps counter-intuitively
+# Location Services has to be enabled in order to also retreive certain fields of information.
+#
+# The code to check Location Services is his - I have merely commented out a line
+
+# Checks that Location Services is enabled for Python and exit with error if not
 import CoreLocation
 from time import sleep
 
@@ -16,10 +23,7 @@ for i in range(1, max_wait):
     if i == max_wait-1:
         exit("Unable to obtain authorization, exiting")
     sleep(1)
-
-# coord = location_manager.location().coordinate()
-# lat, lon = coord.latitude, coord.longitude
-# print("Your location is %f, %f" % (lat, lon))
+# End checking of Location Services
 
 import objc
 objc.loadBundle(
