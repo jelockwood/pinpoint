@@ -1,4 +1,4 @@
-#!/usr/bin/env pythonw
+#!/usr/local/bin/managed_python3
 
 import objc
 objc.loadBundle(
