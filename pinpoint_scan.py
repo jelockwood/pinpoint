@@ -1,4 +1,12 @@
 #!/usr/local/bin/managed_python3
+#
+# Copyright John E. Lockwood (2024)
+#
+# pinpoint_scan.py is a replacement for Apple's airport binary which has been deprecated in macOS Sonoma 14.4
+# it produces a scan report of available SSIDs in the same format previously available from Apple's airport tool
+# Due to additional changes to CoreWLAN made by Apple it is now necessary to enable access to Location Services for Python
+#
+# see https://github.com/jelockwood/pinpoint
 
 # Many thanks in particular go to @thewade. He greatly helped with how to format the output as required, how to retrieve
 # certain fields of information via CoreWLAN, and also especially helped with the fact that - perhaps counter-intuitively
