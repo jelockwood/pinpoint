@@ -16,12 +16,13 @@
 
 # Checks that Location Services is enabled for Python and exit with error if not
 import CoreLocation
+import sys
 from time import sleep
 
 location_manager = CoreLocation.CLLocationManager.alloc().init()
 location_manager.startUpdatingLocation()
 
-max_wait = 60
+max_wait = 6
 # Get the current authorization status for Python
 for i in range(1, max_wait):
     authorization_status = location_manager.authorizationStatus()
@@ -29,7 +30,7 @@ for i in range(1, max_wait):
 #        print("Python has been authorized for location services")
         break
     if i == max_wait-1:
-        exit("Unable to obtain authorization, exiting")
+        sys.exit("Unable to obtain Location Services authorization, exiting")
     sleep(1)
 # End checking of Location Services
 
