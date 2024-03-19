@@ -5,7 +5,8 @@
 #
 # see https://github.com/jelockwood/pinpoint
 #
-# Now written to not use Location Services
+# Written to not use Location Services under macOS 14.3.1 or earlier. Unfortunately changes in
+# macOS Sonoma 14.4 have now made it a necessity to use Location Services
 #
 # Version 3.0 added a new feature contributed by Ofir Gal. This optional feature analyses 
 # the SSID list and compares it to the previous list to see if this indicates a big
