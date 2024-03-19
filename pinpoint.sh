@@ -19,7 +19,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.7"
+versionstring="3.2.8b"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -80,6 +80,19 @@ function levenshtein {
         echo ${d[str1len+str1len*(str2len)]}
     fi
 }
+
+# Quit for now if macOS is 14.4 or later
+
+installed_vers=$(sw_vers -productVersion)
+cur_vers_major=$(echo $installed_vers | cut -f1 -d.)
+cur_vers_minor=$(echo $installed_vers | cut -f2 -d.)
+cur_vers_patch=$(echo $installed_vers | cut -f3 -d.)
+
+if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+	DebugLog "incompatible macOS"
+	exit
+fi
+
 
 # Set your Google geolocation API key here
 # You can get an API key here https://developers.google.com/maps/documentation/geolocation/get-api-key
