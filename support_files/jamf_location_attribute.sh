@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Script to report to a Jamf Pro extension attribute whether Python is enabled to use Location Services
 
 # Force the script to quit if any error encountered
 set -e
