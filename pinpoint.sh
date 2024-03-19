@@ -19,7 +19,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.8b"
+versionstring="3.3.0b"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -90,7 +90,7 @@ cur_vers_patch=$(echo $installed_vers | cut -f3 -d.)
 
 if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
 	DebugLog "incompatible macOS"
-	exit
+	exit 1
 fi
 
 
@@ -277,7 +277,7 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	else
 		DebugLog "Boring wifi, leaving"
 		defaults write "$resultslocation" LastRun -string "$rundate"
-		exit 0
+		exit
 	fi
 fi
 
@@ -453,4 +453,4 @@ else
 	fi
 fi
 
-exit 0
+exit
