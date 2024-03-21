@@ -90,6 +90,7 @@ cur_vers_minor=$(echo $installed_vers | cut -f2 -d.)
 cur_vers_patch=$(echo $installed_vers | cut -f3 -d.)
 
 if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+	if [ ! -e "/usr/local/bin/managed_python3" ]; then
 	DebugLog "incompatible macOS"
 	exit 1
 fi
