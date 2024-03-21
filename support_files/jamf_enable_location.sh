@@ -22,8 +22,8 @@
 
 scriptVersion="2023.12.2"
 scriptLog="${4:-"/var/log/com.jamf.appLocationServices.log"}"
-appName="${5:-"Google Chrome"}"
-appIdentifier="${6:-"com.google.Chrome"}"
+appName="${5:-"Python"}"
+appIdentifier="${6:-"org.python.python"}"
 
 function updateScriptLog() {
     echo -e "$( date +%Y-%m-%d\ %H:%M:%S ) - ${1}" | tee -a "${scriptLog}"
