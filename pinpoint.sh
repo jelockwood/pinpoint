@@ -82,19 +82,38 @@ function levenshtein {
     fi
 }
 
-# Quit for now if macOS is 14.4 or later
-
+# Checking System Requirements
+#
+# macOS Sonoma 14.4 or later requires using a Python script to replace Apple's 
+# airport binary. In order to run the script we require a Python runtime to be installed
+# with CoreWLAN support and the script in order to obtain the needed information also 
+# requires Location Services access to be enabled for the Python runtime
+#
+# Get macOS Version
 installed_vers=$(sw_vers -productVersion)
 cur_vers_major=$(echo $installed_vers | cut -f1 -d.)
 cur_vers_minor=$(echo $installed_vers | cut -f2 -d.)
 cur_vers_patch=$(echo $installed_vers | cut -f3 -d.)
-
+#
+# If macOS version is 14.4 or higher we need to do additional checks
 if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
-	if [ ! -e "/usr/local/bin/managed_python3" ]; then
-	DebugLog "incompatible macOS"
-	exit 1
+# Check MacAdmins Python3 is installed
+        if [ ! -e "/usr/local/bin/managed_python3" ]; then
+                echo "No Python"
+#               DebugLog "running macOS 14.4 or later but required Python is not installed"
+                exit 1
+        else
+# MacAdmins Python3 is installed, now check pinpoint_scan.py is installed
+                if [ ! -e "/Library/Application Support/pinpoint/bin/pinpoint_scan.py" ]; then
+                        echo "pinpoint_scan.py not found"
+#                       DebugLog "pinpoint_scan.py not found"
+                        exit 1
+                fi
+                echo "Python"
+        fi
+#       DebugLog "incompatible macOS"
+#       exit 1
 fi
-
 
 # Set your Google geolocation API key here
 # You can get an API key here https://developers.google.com/maps/documentation/geolocation/get-api-key
