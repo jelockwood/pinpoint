@@ -90,13 +90,10 @@ function levenshtein {
 # requires Location Services access to be enabled for the Python runtime
 #
 # Get macOS Version
-installed_vers=$(sw_vers -productVersion)
-cur_vers_major=$(echo $installed_vers | cut -f1 -d.)
-cur_vers_minor=$(echo $installed_vers | cut -f2 -d.)
-cur_vers_patch=$(echo $installed_vers | cut -f3 -d.)
+installed_vers=$(sw_vers -productVersion | awk -F '.' '{printf "%d%02d%02d\n", $1, $2, $3}')
 #
 # If macOS version is 14.4 or higher we need to do additional checks
-if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+if (( installed_vers >= 140400 )); then
 # Check MacAdmins Python3 is installed
         if [ ! -e "/usr/local/bin/managed_python3" ]; then
                 echo "No Python"
@@ -215,7 +212,7 @@ if [ $STATUS = "Off" ] ; then
     sleep 5
 fi
 #
-if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+if (( installed_vers >= 140400 )); then
 # If macOS newer than 14.4 then use Python script to get list of SSIDs
     if gl_ssids="$('/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
         rc=0
