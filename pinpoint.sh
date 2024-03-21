@@ -215,8 +215,24 @@ if [ $STATUS = "Off" ] ; then
     sleep 5
 fi
 #
-# Now use built-in Apple tool to get list of BSSIDs
-gl_ssids=`/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport -s | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12`
+if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+# If macOS newer than 14.4 then use Python script to get list of SSIDs
+    if gl_ssids="$('/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
+        rc=0
+        stdout="$gl_ssids"
+    else
+# Likely error is caused by Location Services not yet enabled for Python, script needs to be
+# run at least once first to trigger a request in Privacy & Security which can then be approved.
+# See - https://github.com/jelockwood/pinpoint/wiki/Enabling-Location-Services
+        rc=$?
+        stderr="$gl_ssids"
+	DebugLog "$stderr"
+	exit 1
+    fi
+else
+# If macOS older than 14.4 use built-in Apple tool to get list of SSIDs
+    gl_ssids=`/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport -s | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12`
+fi
 #
 # We have finished using the WiFi if it was originally off we now turn it back off
 if [ $STATUS = "Off" ] ; then
@@ -224,7 +240,7 @@ if [ $STATUS = "Off" ] ; then
 fi
 
 if [[ -z "${gl_ssids}" ]]; then
-	DebugLog "airport cmd failed"
+	DebugLog "WiFi scan cmd failed"
 	exit 1
 fi
 
