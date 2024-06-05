@@ -1,0 +1,64 @@
+#!/bin/bash
+# pinpoint post install script
+#Edit in your API Key
+API_KEY="YOUR_API_KEY_GOES_HERE"
+PLISTBUDDYLOC="/usr/libexec/plistbuddy"  
+PLISTLOC="/Library/LaunchDaemons/com.jelockwood.pinpoint.plist"
+DAEMON="/Library/LaunchDaemons/com.jelockwood.pinpoint.plist"
+OPTIMIZATION="/Library/Application Support/pinpoint/bin/pinpoint.sh -o -k $API_KEY"
+/usr/sbin/chown -R root:wheel "/Library/Application Support/pinpoint"
+/bin/chmod 755 "/Library/Application Support/pinpoint/bin/pinpoint.sh"
+#Set up the preferences file
+/usr/sbin/chown root:wheel "/Library/LaunchDaemons/com.jelockwood.pinpoint.plist"
+if [ ! -f "/Library/Preferences/com.jelockwood.pinpoint.plist" ]; then
+	/usr/bin/defaults write "/Library/Preferences/com.jelockwood.pinpoint" USE_ALTITUDE -bool FALSE
+	/usr/bin/defaults write "/Library/Preferences/com.jelockwood.pinpoint" USE_GEOCODE -bool TRUE
+	/usr/bin/defaults write "/Library/Preferences/com.jelockwood.pinpoint" YOUR_API_KEY -string $API_KEY
+else
+	use_geocode=`/usr/bin/defaults read "/Library/Preferences/com.jelockwood.pinpoint" USE_GEOCODE`
+	if [ -z "$use_geocode" ]; then
+        	/usr/bin/defaults write "/Library/Preferences/com.jelockwood.pinpoint" USE_GEOCODE -bool TRUE
+	fi
+	use_altitude=`/usr/bin/defaults read "/Library/Preferences/com.jelockwood.pinpoint" USE_ALTITUDE`
+	if [ -z "$use_altitude" ]; then
+        	/usr/bin/defaults write "/Library/Preferences/com.jelockwood.pinpoint" USE_ALTITUDE -bool FALSE
+	fi
+	your_api_key=`/usr/bin/defaults read "/Library/Preferences/com.jelockwood.pinpoint" YOUR_API_KEY`
+	if [ -z "$your_api_key" ]; then
+        	/usr/bin/defaults write "/Library/Preferences/com.jelockwood.pinpoint" YOUR_API_KEY -string $API_KEY
+	fi
+fi
+
+#Run the python script one time to establish an entry in locationdb
+
+# Run as user logic
+currentUser=$(scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ { print $3 }')
+
+runAsUser() {
+    if [[ $currentUser != "loginwindow" ]]; then
+        uid=$(id -u "$currentUser")
+        launchctl asuser $uid sudo -u $currentUser "$@"
+    fi
+}
+# End Run as user logic
+# Run the python scan as the user and not sudo root
+
+runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'
+
+# Now grant the python entry in locationdb the access pivilege it requires
+
+"/Library/Application Support/pinpoint/bin/GrantPythonLocationServiceAccess.sh"
+
+#Tell LaunchDaemon file to use the optimization option in the program argument
+$PLISTBUDDYLOC -c "Delete :ProgramArguments" $PLISTLOC
+$PLISTBUDDYLOC -c "Add :ProgramArguments array" $PLISTLOC
+$PLISTBUDDYLOC -c "Add :ProgramArguments:1 string ${OPTIMIZATION}" $PLISTLOC
+#Load the LaunchDaemon
+if [ -f "$DAEMON" ]; then
+/bin/launchctl unload $DAEMON
+fi
+/bin/launchctl load $DAEMON
+
+#run pinpoint first time
+/Library/Application\ Support/pinpoint/bin/pinpoint.sh
+exit
