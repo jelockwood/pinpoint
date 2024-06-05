@@ -215,9 +215,22 @@ if [ $STATUS = "Off" ] ; then
     sleep 5
 fi
 #
+# Run as user logic for Python script
+currentUser=$(scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ { print $3 }')
+
+runAsUser() {
+    if [[ $currentUser != "loginwindow" ]]; then
+        uid=$(id -u "$currentUser")
+        launchctl asuser $uid sudo -u $currentUser "$@"
+    fi
+}
+# End Run as user logic for Python Script
+
+# Run the Python scan script as the user and not root
+
 if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
 # If macOS newer than 14.4 then use Python script to get list of SSIDs
-    if gl_ssids="$('/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
+    if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
         rc=0
         stdout="$gl_ssids"
     else
