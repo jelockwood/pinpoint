@@ -5,7 +5,9 @@ API_KEY="YOUR_API_KEY_GOES_HERE"
 PLISTBUDDYLOC="/usr/libexec/plistbuddy"  
 PLISTLOC="/Library/LaunchDaemons/com.jelockwood.pinpoint.plist"
 DAEMON="/Library/LaunchDaemons/com.jelockwood.pinpoint.plist"
-OPTIMIZATION="/Library/Application Support/pinpoint/bin/pinpoint.sh -o -k $API_KEY"
+SCRIPT="/Library/Application\ Support/pinpoint/bin/pinpoint.sh"
+OPT_ROUTINE="-o"
+EXPLICIT_KEY="-k"
 /usr/sbin/chown -R root:wheel "/Library/Application Support/pinpoint"
 /bin/chmod 755 "/Library/Application Support/pinpoint/bin/pinpoint.sh"
 #Set up the preferences file
@@ -52,7 +54,10 @@ runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'
 #Tell LaunchDaemon file to use the optimization option in the program argument
 $PLISTBUDDYLOC -c "Delete :ProgramArguments" $PLISTLOC
 $PLISTBUDDYLOC -c "Add :ProgramArguments array" $PLISTLOC
-$PLISTBUDDYLOC -c "Add :ProgramArguments:1 string ${OPTIMIZATION}" $PLISTLOC
+$PLISTBUDDYLOC -c "Add :ProgramArguments:1 string ${SCRIPT}" $PLISTLOC
+$PLISTBUDDYLOC -c "Add :ProgramArguments:2 string ${OPT_ROUTINE}" $PLISTLOC
+$PLISTBUDDYLOC -c "Add :ProgramArguments:3 string ${EXPLICIT_KEY}" $PLISTLOC
+$PLISTBUDDYLOC -c "Add :ProgramArguments:4 string ${API_KEY}" $PLISTLOC
 #Load the LaunchDaemon
 if [ -f "$DAEMON" ]; then
 /bin/launchctl unload $DAEMON
