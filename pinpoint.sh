@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright John E. Lockwood (2018-2024)
-#
+# Modified by Alex Narvey, Precursor.ca while waiting for version 3.3 or higer.
 # pinpoint a script to find your Mac's location
 #
 # see https://github.com/jelockwood/pinpoint
@@ -20,7 +20,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.3.0b"
+versionstring="3.2.8"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -40,7 +40,8 @@ usage()
 	-o | --optim		Use optmisation to minimise Google API calls"
 }
 
-debugLog="/var/log/pinpoint.log"
+#debugLog="/var/log/pinpoint.log"
+debugLog="/Library/Application Support/pinpoint/bin/pinpoint.log"
 
 function DebugLog {
 	if [[ "${use_debug}" == "True" ]] || [[ "${use_debug}" == "true" ]] ; then
@@ -94,9 +95,27 @@ installed_vers=$(sw_vers -productVersion)
 cur_vers_major=$(echo $installed_vers | cut -f1 -d.)
 cur_vers_minor=$(echo $installed_vers | cut -f2 -d.)
 cur_vers_patch=$(echo $installed_vers | cut -f3 -d.)
+
 #
 # If macOS version is 14.4 or higher we need to do additional checks
-if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+if (( cur_vers_major >= 15 )) ; then
+# Check MacAdmins Python3 is installed
+        if [ ! -e "/usr/local/bin/managed_python3" ]; then
+                echo "No Python"
+#               DebugLog "running macOS 14.4 or later but required Python is not installed"
+                exit 1
+        else
+# MacAdmins Python3 is installed, now check pinpoint_scan.py is installed
+                if [ ! -e "/Library/Application Support/pinpoint/bin/pinpoint_scan.py" ]; then
+                        echo "pinpoint_scan.py not found"
+#                       DebugLog "pinpoint_scan.py not found"
+                        exit 1
+                fi
+                echo "Python"
+        fi
+#       DebugLog "incompatible macOS"
+#       exit 1
+elif (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )) ; then
 # Check MacAdmins Python3 is installed
         if [ ! -e "/usr/local/bin/managed_python3" ]; then
                 echo "No Python"
@@ -124,7 +143,7 @@ YOUR_API_KEY="pasteyourkeyhere"
 # Set initial default preference values
 use_geocode="True"
 use_altitude="False"
-use_optim="True"
+use_optim="False"
 use_debug="False"
 jamf=0
 commandoptions=0
@@ -148,10 +167,11 @@ while [ "$1" != "" ]; do
 		-g | --geocode )		use_geocode=1
 						commandoptions=1
 						;;
-		-d | --debug )		use_debug=1
+		-d | --debug )			use_debug="True"
 						commandoptions=1
+						echo "$scriptname Debug = $use_debug"
 						;;
-		-o | --optim )		use_optim=1
+		-o | --optim )		use_optim="True"
 						commandoptions=1
 						;;
 		-k | --key )			YOUR_API_KEY="$2"
@@ -228,7 +248,21 @@ runAsUser() {
 
 # Run the Python scan script as the user and not root
 
-if (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+if (( cur_vers_major >= 15 )); then
+# If macOS equal or newer than 15 then use Python script to get list of SSIDs
+    if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
+        rc=0
+        stdout="$gl_ssids"
+    else
+# Likely error is caused by Location Services not yet enabled for Python, script needs to be
+# run at least once first to trigger a request in Privacy & Security which can then be approved.
+# See - https://github.com/jelockwood/pinpoint/wiki/Enabling-Location-Services
+        rc=$?
+        stderr="$gl_ssids"
+	DebugLog "$stderr"
+	exit 1
+    fi
+elif (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
 # If macOS newer than 14.4 then use Python script to get list of SSIDs
     if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
         rc=0
@@ -273,6 +307,8 @@ fi
 #
 # has wifi signal changed - if not then exit
 if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
+	echo "Using Optimization"
+	DebugLog "Using Optimzation"
 	OldAP=`defaults read "/Library/Application Support/pinpoint/location.plist" TopAP`
 	OldSignal=`defaults read "/Library/Application Support/pinpoint/location.plist" Signal` || OldSignal="0"
 	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)" || NewResult=""
@@ -384,12 +420,20 @@ echo "Result code = $resultcode"
 if [ "$resultcode" != "200" ]; then
 	if [ -e "$resultslocation" ]; then
 		reason=`echo "$result" | grep "reason" | awk -F ": " '{print $2}'`
+		message=`echo "$result" | grep "message" | awk -F ": " '{print $2}'`
 		defaults write "$resultslocation" CurrentStatus -string "Error $resultcode - $reason"
 		defaults write "$resultslocation" LastRun -string "$rundate"
 		defaults write "$resultslocation" StaleLocation -string "Yes"
 		chmod 644 "$resultslocation"
 	fi
 	DebugLog "Error: $resultcode"
+	#MORE STUFF
+	DebugLog "Reason: $reason"
+	DebugLog "Message: $message"
+	DebugLog "RunDate: $rundate"
+	DebugLog "JSON: $json"
+	DebugLog "GL_SSIDS: $gl_ssids"
+	DebugLog "STDERR: $stderr"
 	exit 1
 fi
 #
@@ -451,7 +495,7 @@ if [[ "${use_geocode}" == "True" ]] || [[ "${use_geocode}" == "true" ]] ; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
-		DebugLog "Error: $status"
+		DebugLog "Error: $status - $reason"
 		exit 1
 	fi
 	#
@@ -475,7 +519,7 @@ if [[ "${use_altitude}" == "True" ]] || [[ "${use_altitude}" == "true" ]] ; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
-		DebugLog "Error: $reason"
+		DebugLog "Error: $status - $reason"
 		exit 1
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
