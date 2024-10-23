@@ -10,14 +10,18 @@
 #
 # Version 1.0, Copyright John Lockwood, October 23rd 2024
 
+# Get raw WiFi data in json format
 lines=$(/usr/sbin/system_profiler SPAirPortDataType -json)
 
+# Set fields that are not supported to dummy/empty values
 BSSID="                 "
 HT="Y "
 CC="--"
 
+# Output header line
 echo "                            SSID BSSID             RSSI CHANNEL HT CC SECURITY (auth/unicast/group)"
 
+# Loop through results and find each SSID and output the fields per SSID in desired format
 while read line
 do
     if [[ "$line" == "]," ]]
