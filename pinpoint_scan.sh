@@ -40,7 +40,7 @@ do
 		else
 			if echo "$line" | /usr/bin/grep -q "spairport_security_mode"
 			then
-				securitymode=$(echo "$line" | /usr/bin/awk -F'"' '{print $4}' | /usr/bin/sed -e "s/^spairport_security_mode_//" -e "s/_/ /g" -e "s/wpa/WPA/g" -e "s/personal/Personal/" -e "s/enterprise/Enterprise/" -e "s/mixed/Mixed/" -e "s/none/Open/")
+				securitymode=$(echo "$line" | /usr/bin/awk -F'"' '{print $4}' | /usr/bin/sed -e "s/^spairport_security_mode_//" -e "s/^pairport_security_mode_//" -e "s/_/ /g" -e "s/wpa/WPA/g" -e "s/personal/Personal/" -e "s/enterprise/Enterprise/" -e "s|WPA3 transition|WPA2/WPA3 Personal|" -e "s/mixed/Mixed/" -e "s/none/Open/")
 			else
 				if echo "$line" | /usr/bin/grep -q "spairport_signal_noise"
 				then
