@@ -1,4 +1,14 @@
 #!/bin/sh
+#
+# A script to replicate the previous functionality provided by Apple's former 
+# /System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport
+# tool which was deprected in macOS 14.4. This script uses the /usr/sbin/system_profiler tool.
+# This script takes the output and reformats it to reproduce the WiFi SSID report of the former
+# airport tool. Due to some differences in capabilities of system_profiler some information is
+# not possible to produce and these fields are left empty or with fake data. These fields being
+# BSSID, HT and CC but are fortunately less important.
+#
+# Version 1.0, Copyright John Lockwood, October 23rd 2024
 
 lines=$(system_profiler SPAirPortDataType -json)
 
