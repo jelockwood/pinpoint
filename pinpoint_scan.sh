@@ -10,7 +10,7 @@
 #
 # Version 1.0, Copyright John Lockwood, October 23rd 2024
 
-lines=$(system_profiler SPAirPortDataType -json)
+lines=$(/usr/sbin/system_profiler SPAirPortDataType -json)
 
 BSSID="                 "
 HT="Y "
@@ -24,26 +24,26 @@ do
     then
 	break
     else
-	if echo "$line" | grep -q "_name"
+	if echo "$line" | /usr/bin/grep -q "_name"
 	then
-		name=$(echo "$line" | awk -F'"' '{print $4}')
+		name=$(echo "$line" | /usr/bin/awk -F'"' '{print $4}')
 		name=$(printf '%32s' "$name")
 	else
-		if echo "$line" | grep -q "spairport_network_channel"
+		if echo "$line" | /usr/bin/grep -q "spairport_network_channel"
 		then
-			channel=$(echo "$line" | awk -F'"' '{print $4}' | awk -F' ' '{print $1}')
+			channel=$(echo "$line" | /usr/bin/awk -F'"' '{print $4}' | /usr/bin/awk -F' ' '{print $1}')
 			channel=$(printf '%-7s' "$channel")
 		else
-			if echo "$line" | grep -q "spairport_security_mode"
+			if echo "$line" | /usr/bin/grep -q "spairport_security_mode"
 			then
-				securitymode=$(echo "$line" | awk -F'"' '{print $4}' | sed -e "s/^spairport_security_mode_//" -e "s/_/ /g" -e "s/wpa/WPA/g" -e "s/personal/Personal/" -e "s/enterprise/Enterprise/" -e "s/mixed/Mixed/" -e "s/none/Open/")
+				securitymode=$(echo "$line" | /usr/bin/awk -F'"' '{print $4}' | /usr/bin/sed -e "s/^spairport_security_mode_//" -e "s/_/ /g" -e "s/wpa/WPA/g" -e "s/personal/Personal/" -e "s/enterprise/Enterprise/" -e "s/mixed/Mixed/" -e "s/none/Open/")
 			else
-				if echo "$line" | grep -q "spairport_signal_noise"
+				if echo "$line" | /usr/bin/grep -q "spairport_signal_noise"
 				then
-					signalnoise=$(echo "$line" | awk -F'"' '{print $4}' | awk -F' ' '{print $1}')
+					signalnoise=$(echo "$line" | /usr/bin/awk -F'"' '{print $4}' | /usr/bin/awk -F' ' '{print $1}')
 					signalnoise=$(printf '%-4s' "$signalnoise")
 				else
-					if echo "$line" | grep -q "},"
+					if echo "$line" | /usr/bin/grep -q "},"
 					then
 						echo "$name $BSSID $signalnoise $channel $HT $CC $securitymode"
 					fi
