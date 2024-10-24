@@ -20,7 +20,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.8"
+versionstring="3.2.8.2"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -354,11 +354,12 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	DebugLog "Last error: $LastError"
 	DebugLog "Last address: $LastAddress"
 	
-	if [[ -n "${LastError}" ]] ; then
-		DebugLog "Running gelocation due to error last time"
-	fi
+#	if [[ -n "${LastError}" ]] ; then
+#		DebugLog "Running gelocation due to error last time"
+#	fi
 
-	if (( moved == 1 )) || [[ -n "${LastError}" ]] ; then
+#	if (( moved == 1 )) || [[ -n "${LastError}" ]] ; then
+	if (( moved == 1 )) ; then
 		DebugLog "Running gelocation"
 	else
 		DebugLog "Boring wifi, leaving"
