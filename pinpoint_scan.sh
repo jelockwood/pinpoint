@@ -8,7 +8,7 @@
 # not possible to produce and these fields are left empty or with fake data. These fields being
 # BSSID, HT and CC but are fortunately less important.
 #
-# Version 1.0.1, Copyright John Lockwood, October 23rd 2024
+# Version 1.0.1, Copyright John E. Lockwood, October 23rd 2024
 
 # Get raw WiFi data in json format
 lines=$(/usr/sbin/system_profiler SPAirPortDataType -json)
