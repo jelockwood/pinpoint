@@ -20,7 +20,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.8.2"
+versionstring="3.2.8.3"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -91,31 +91,11 @@ function levenshtein {
 # requires Location Services access to be enabled for the Python runtime
 #
 # Get macOS Version
-installed_vers=$(sw_vers -productVersion)
-cur_vers_major=$(echo $installed_vers | cut -f1 -d.)
-cur_vers_minor=$(echo $installed_vers | cut -f2 -d.)
-cur_vers_patch=$(echo $installed_vers | cut -f3 -d.)
+installed_vers=$(sw_vers -productVersion | awk -F '.' '{printf "%d%02d%02d\n", $1, $2, $3}')
 
 #
 # If macOS version is 14.4 or higher we need to do additional checks
-if (( cur_vers_major >= 15 )) ; then
-# Check MacAdmins Python3 is installed
-        if [ ! -e "/usr/local/bin/managed_python3" ]; then
-                echo "No Python"
-#               DebugLog "running macOS 14.4 or later but required Python is not installed"
-                exit 1
-        else
-# MacAdmins Python3 is installed, now check pinpoint_scan.py is installed
-                if [ ! -e "/Library/Application Support/pinpoint/bin/pinpoint_scan.py" ]; then
-                        echo "pinpoint_scan.py not found"
-#                       DebugLog "pinpoint_scan.py not found"
-                        exit 1
-                fi
-                echo "Python"
-        fi
-#       DebugLog "incompatible macOS"
-#       exit 1
-elif (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )) ; then
+if (( installed_vers >= 140400 )) ; then
 # Check MacAdmins Python3 is installed
         if [ ! -e "/usr/local/bin/managed_python3" ]; then
                 echo "No Python"
@@ -248,21 +228,7 @@ runAsUser() {
 
 # Run the Python scan script as the user and not root
 
-if (( cur_vers_major >= 15 )); then
-# If macOS equal or newer than 15 then use Python script to get list of SSIDs
-    if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
-        rc=0
-        stdout="$gl_ssids"
-    else
-# Likely error is caused by Location Services not yet enabled for Python, script needs to be
-# run at least once first to trigger a request in Privacy & Security which can then be approved.
-# See - https://github.com/jelockwood/pinpoint/wiki/Enabling-Location-Services
-        rc=$?
-        stderr="$gl_ssids"
-	DebugLog "$stderr"
-	exit 1
-    fi
-elif (( cur_vers_major >= 14 )) && (( cur_vers_minor >= 4 )); then
+if (( installed_vers >= 140400 )); then
 # If macOS newer than 14.4 then use Python script to get list of SSIDs
     if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
         rc=0
