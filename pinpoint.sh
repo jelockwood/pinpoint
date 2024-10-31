@@ -20,7 +20,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.8.3"
+versionstring="3.2.8.4"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
