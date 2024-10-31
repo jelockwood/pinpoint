@@ -18,9 +18,10 @@
 #	- v.1.5 Bill Addis, Sep 15, 2023: Added for loop to update all Teams location entries (old Teams and new)
 #   - v.1.6 Bill Addis, Oct 23, 2023: Added support for Sonoma. Updated script to loop for all Teams versions
 #	- v.1.7: Julian Ortega, Dec 20, 2023: Updated to work for generic apps instead of MS Teams
+#	- v.1.7.1: Alex Narvey, Oct 30, 2024: Updated for munkireport Python and for macOS 15 Sequoia
 ####################################################################################################
 # This version modified to instead default to granting Python permission
-scriptVersion="2023.12.2"
+scriptVersion="2024.10.30"
 scriptLog="${4:-"/var/log/com.jamf.appLocationServices.log"}"
 appName="${5:-"Python"}"
 appIdentifier="${6:-"org.python.python"}"
@@ -161,6 +162,55 @@ elif [[ "$osVers" == *12* ]] ; then
     fi
 elif [[ "$osVers" == *14* ]] ; then
     updateScriptLog "Executing for macOS 14 Sonoma..."
+    clients="/var/db/locationd/clients.plist"
+        if [[ -f "$clients" ]]; then
+            updateScriptLog "$clients already exists! Moving on..."
+
+            # Create a backup of the existing client location services file
+            cp $clients /var/db/locationd/clients.BAK
+
+            # Create an extra working backup
+            cp $clients /private/var/tmp/
+
+            # Convert our working backup client plist to xml for editing
+            plutil -convert xml1 /private/var/tmp/clients.plist
+
+            count=1
+
+            for i in $(/usr/libexec/PlistBuddy -c "Print" /private/var/tmp/clients.plist | grep -a :i$appIdentifier | awk -F '=Dict{' '{gsub(/ /,"");gsub(":","\\:");print $1}'  | sed "s/..$//");
+
+            do
+            updateScriptLog "Current key value for key$count:"
+            updateScriptLog "$(/usr/libexec/PlistBuddy -c "Print $i" $clients)"
+
+            # Use Plist Buddy to mark-up client plist, enabling app's location services
+            /usr/LibExec/PlistBuddy -c "Set :$i\::Authorized true" /private/var/tmp/clients.plist
+            # Check return for last command
+            if [[ "$?" = "1" ]]; then
+                updateScriptLog "Authorized key seems to be missing...re-adding the key"
+                /usr/LibExec/PlistBuddy -c "Add :$i\::Authorized bool true" /private/var/tmp/clients.plist
+                updateScriptLog "Adding 'authorized' key for $i location services returned: $?"
+            fi
+            updateScriptLog "Setting $i location services returned: $?"
+
+            ((count=count+1))
+            done
+
+            # Convert back to binary
+            plutil -convert binary1 /private/var/tmp/clients.plist
+
+            # Put the updated client plist into appropriate dir
+            cp /private/var/tmp/clients.plist $clients
+
+            # Kill and restart the location services daemon and remove our temp file
+            killall locationd
+            #rm /private/var/tmp/clients.plist
+        else
+            updateScriptLog "$clients does not exist...exiting"
+            exit 1
+        fi
+elif [[ "$osVers" == *15* ]] ; then
+    updateScriptLog "Executing for macOS 15 Sequoia..."
     clients="/var/db/locationd/clients.plist"
         if [[ -f "$clients" ]]; then
             updateScriptLog "$clients already exists! Moving on..."
