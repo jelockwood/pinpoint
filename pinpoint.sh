@@ -20,7 +20,9 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.8.4"
+versionstring="3.2.8.5"
+# Define Known Networks list for exemptions below (the name of each Wifi network on a separate line of a .txt file served from a web server)
+KNOWNNETWORKS="https://example.com/SSID.txt"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -269,6 +271,19 @@ else
 	defaults write "$resultslocation" LS_Enabled -int 0
 	DebugLog "Location services: Disabled"
 fi
+
+# BEGIN known office exemption
+# Get the Current WiFi Network Name
+SSID=$(system_profiler SPAirPortDataType | awk '/Current Network Information:/ { getline; print substr($0, 13, (length($0) - 13)); exit }')
+# Get the list of Office Networks
+SSIDLIST=$(curl -s $KNOWNNETWORKS)
+# Check against the list and exit if the SiFi is set to a known office network
+if printf '%s\0' "${SSIDLIST[@]}" | grep -Fwqz $SSID; then
+    # echo "Yes the SSID is in the list of known office networks"
+    DebugLog "Computer is on a known office network, no lookup required"
+	exit
+fi
+# END known office exemption
 
 #
 # has wifi signal changed - if not then exit
