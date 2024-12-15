@@ -24,8 +24,6 @@ This version is a completely written from scratch replacement for the now deprec
 
 Clayton's version relied heavily on Apple's Location Services API which sadly as of High Sierra 10.13.4 Apple changed so that it became impossible to use in an automated fashion. This version as mentioned has been written from scratch and does not use Location Services at all and hence is able to work - even in Mojave 10.14.
 
-Note: As this version is written purely using bash it will work in macOS Monterey 12.3 and later without issue as it does not use Python.
-
 More information about this version can be found on the [Wiki](https://github.com/jelockwood/pinpoint/wiki).
 
 :bangbang: Munkireport users [read this](https://github.com/jelockwood/pinpoint/wiki/MunkiReport-Setup)! :bangbang:
