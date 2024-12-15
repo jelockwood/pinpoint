@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright John E. Lockwood (2018-2024)
-#
+# Modified by Alex Narvey, Precursor.ca while waiting for version 3.3 or higer.
 # pinpoint a script to find your Mac's location
 #
 # see https://github.com/jelockwood/pinpoint
@@ -20,7 +20,19 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.3.0b"
+versionstring="3.4.0b"
+# Feature added by Alex Narvey so that if currently connected to a known SSID the script will except without
+# calling Google APIs as the presumption is made that the location is then already known. This is to further
+# reduce the quantity of Google API calls and keep costs down. If The URL defined is invalid and the CURL
+# fails then this does not operate and the script runs as normal
+#
+# Google have further changed the costs for using their APIs and this option can help keep your usage down
+# to a level that is still within their 'free' limit
+# 
+# The webpage being access via the URL is a plain text file with one SSID name per line
+#
+# Define Known Networks list for exemptions below (the name of each Wifi network on a separate line of a .txt file served from a web server)
+KNOWNNETWORKS="https://example.com/SSID.txt"
 # get date and time in UTC hence timezone offset is zero
 rundate=`date -u +%Y-%m-%d\ %H:%M:%S\ +0000`
 #echo "$rundate"
@@ -40,7 +52,8 @@ usage()
 	-o | --optim		Use optmisation to minimise Google API calls"
 }
 
-debugLog="/var/log/pinpoint.log"
+#debugLog="/var/log/pinpoint.log"
+debugLog="/Library/Application Support/pinpoint/bin/pinpoint.log"
 
 function DebugLog {
 	if [[ "${use_debug}" == "True" ]] || [[ "${use_debug}" == "true" ]] ; then
@@ -90,6 +103,7 @@ function levenshtein {
 # requires Location Services access to be enabled for the Python runtime
 #
 # Get macOS Version
+# Improved logic for version checking submitted by Ofir Gal
 installed_vers=$(sw_vers -productVersion | awk -F '.' '{printf "%d%02d%02d\n", $1, $2, $3}')
 #
 # If macOS version is 14.4 or higher we need to do additional checks
@@ -121,7 +135,7 @@ YOUR_API_KEY="pasteyourkeyhere"
 # Set initial default preference values
 use_geocode="True"
 use_altitude="False"
-use_optim="True"
+use_optim="False"
 use_debug="False"
 jamf=0
 commandoptions=0
@@ -145,10 +159,11 @@ while [ "$1" != "" ]; do
 		-g | --geocode )		use_geocode=1
 						commandoptions=1
 						;;
-		-d | --debug )		use_debug=1
+		-d | --debug )			use_debug="True"
 						commandoptions=1
+						echo "$scriptname Debug = $use_debug"
 						;;
-		-o | --optim )		use_optim=1
+		-o | --optim )		use_optim="True"
 						commandoptions=1
 						;;
 		-k | --key )			YOUR_API_KEY="$2"
@@ -212,9 +227,23 @@ if [ $STATUS = "Off" ] ; then
     sleep 5
 fi
 #
+
+# Run as user logic for Python script
+currentUser=$(scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ { print $3 }')
+
+runAsUser() {
+    if [[ $currentUser != "loginwindow" ]]; then
+        uid=$(id -u "$currentUser")
+        launchctl asuser $uid sudo -u $currentUser "$@"
+    fi
+}
+# End Run as user logic for Python Script
+
+# Run the Python scan script as the user and not root
+
 if (( installed_vers >= 140400 )); then
 # If macOS newer than 14.4 then use Python script to get list of SSIDs
-    if gl_ssids="$('/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
+    if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
         rc=0
         stdout="$gl_ssids"
     else
@@ -254,9 +283,24 @@ else
 	DebugLog "Location services: Disabled"
 fi
 
+# BEGIN known office exemption
+# Get the Current WiFi Network Name
+SSID=$(system_profiler SPAirPortDataType | awk '/Current Network Information:/ { getline; print substr($0, 13, (length($0) - 13)); exit }')
+# Get the list of Office Networks
+SSIDLIST=$(curl -s $KNOWNNETWORKS)
+# Check against the list and exit if the SiFi is set to a known office network
+if printf '%s\0' "${SSIDLIST[@]}" | grep -Fwqz $SSID; then
+    # echo "Yes the SSID is in the list of known office networks"
+    DebugLog "Computer is on a known office network, no lookup required"
+	exit
+fi
+# END known office exemption
+
 #
 # has wifi signal changed - if not then exit
 if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
+	echo "Using Optimization"
+	DebugLog "Using Optimzation"
 	OldAP=`defaults read "/Library/Application Support/pinpoint/location.plist" TopAP`
 	OldSignal=`defaults read "/Library/Application Support/pinpoint/location.plist" Signal` || OldSignal="0"
 	NewResult="$(echo $gl_ssids | awk '{print substr($0, 1, 22)}' | sort -t '$' -k2,2rn | head -1)" || NewResult=""
@@ -302,11 +346,12 @@ if [[ "${use_optim}" == "True" ]] || [[ "${use_optim}" == "true" ]] ; then
 	DebugLog "Last error: $LastError"
 	DebugLog "Last address: $LastAddress"
 	
-	if [[ -n "${LastError}" ]] ; then
-		DebugLog "Running gelocation due to error last time"
-	fi
+#	if [[ -n "${LastError}" ]] ; then
+#		DebugLog "Running gelocation due to error last time"
+#	fi
 
-	if (( moved == 1 )) || [[ -n "${LastError}" ]] ; then
+#	if (( moved == 1 )) || [[ -n "${LastError}" ]] ; then
+	if (( moved == 1 )) ; then
 		DebugLog "Running gelocation"
 	else
 		DebugLog "Boring wifi, leaving"
@@ -368,12 +413,20 @@ echo "Result code = $resultcode"
 if [ "$resultcode" != "200" ]; then
 	if [ -e "$resultslocation" ]; then
 		reason=`echo "$result" | grep "reason" | awk -F ": " '{print $2}'`
+		message=`echo "$result" | grep "message" | awk -F ": " '{print $2}'`
 		defaults write "$resultslocation" CurrentStatus -string "Error $resultcode - $reason"
 		defaults write "$resultslocation" LastRun -string "$rundate"
 		defaults write "$resultslocation" StaleLocation -string "Yes"
 		chmod 644 "$resultslocation"
 	fi
 	DebugLog "Error: $resultcode"
+	#MORE STUFF
+	DebugLog "Reason: $reason"
+	DebugLog "Message: $message"
+	DebugLog "RunDate: $rundate"
+	DebugLog "JSON: $json"
+	DebugLog "GL_SSIDS: $gl_ssids"
+	DebugLog "STDERR: $stderr"
 	exit 1
 fi
 #
@@ -435,7 +488,7 @@ if [[ "${use_geocode}" == "True" ]] || [[ "${use_geocode}" == "true" ]] ; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
-		DebugLog "Error: $status"
+		DebugLog "Error: $status - $reason"
 		exit 1
 	fi
 	#
@@ -459,7 +512,7 @@ if [[ "${use_altitude}" == "True" ]] || [[ "${use_altitude}" == "true" ]] ; then
 			defaults write "$resultslocation" StaleLocation -string "Yes"
 			chmod 644 "$resultslocation"
 		fi
-		DebugLog "Error: $reason"
+		DebugLog "Error: $status - $reason"
 		exit 1
 	else
 		altitude=`echo "$altitude_result" | grep -m1 "elevation" | awk -F ":" '{print $2}' | sed -e 's/^[ \t]*//' -e 's/.\{2\}$//'`
