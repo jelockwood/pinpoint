@@ -7,7 +7,7 @@ Apple have deprecated their airport binary as of macOS Sonoma 14.4 and as a resu
 I have already determined that it should be possible to use a Python script to obtain the same information that the airport binary previously provided. Ironically one of the goals I set myself originally was to write this script in a way that did not require using Python at all as Apple had stopped incuding a copy of Python in macOS.
 
 Update -
-I have discovered also that as Python is using the CoreWIFI api, this requires enabling Location Services as well. Unfortunately it is effectively impossible enable Location Services for root to use as required by IT management tools like Jamf Pro and MunkiReport. I have therefore since created a shell script which does not require Location Services or Python or CoreWIFI but has the very small drawback of not producing quite as much information. It does however seem to be sufficient.
+I have discovered also that as Python is using the CoreWIFI api, this requires enabling Location Services as well. Unfortunately it is effectively impossible to enable Location Services for root to use as required by IT management tools like Jamf Pro and MunkiReport. I have therefore since created a shell script which does not require Location Services or Python or CoreWIFI but has the very small drawback of not producing quite as much information. It does however seem to be sufficient.
 
 I have also been able to use a copy of the airport binary from macOS 14.3.1 in macOS 14.4 successfully but this cannot be relied on for the future.
 
