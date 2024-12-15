@@ -163,7 +163,7 @@ while [ "$1" != "" ]; do
 						commandoptions=1
 						echo "$scriptname Debug = $use_debug"
 						;;
-		-o | --optim )		use_optim="True"
+		-o | --optim )			use_optim="True"
 						commandoptions=1
 						;;
 		-k | --key )			YOUR_API_KEY="$2"
@@ -195,6 +195,10 @@ if [ $commandoptions -eq 0 ]; then
 	PREFERENCE_API_KEY=$(pref_value ${DOMAIN} "YOUR_API_KEY")
 	if [ ! -z "$PREFERENCE_API_KEY" ]; then
 		YOUR_API_KEY="$PREFERENCE_API_KEY"
+	fi
+	PREFERENCE_KNOWN_NETWORKS_URL=$(pref_value ${DOMAIN} "KNOWN_NETWORKS_URL")
+	if [ ! -z "$PREFERENCE_KNOWN_NETWORKS_URL" ]; then
+		KNOWNNETWORKS="$PREFERENCE_KNOWN_NETWORKS_URL"
 	fi
 fi
 #
