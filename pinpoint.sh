@@ -20,7 +20,17 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.2.8.5"
+versionstring="3.4.0b"
+# Feature added by Alex Narvey so that if currently connected to a known SSID the script will except without
+# calling Google APIs as the presumption is made that the location is then already known. This is to further
+# reduce the quantity of Google API calls and keep costs down. If The URL defined is invalid and the CURL
+# fails then this does not operate and the script runs as normal
+#
+# Google have further changed the costs for using their APIs and this option can help keep your usage down
+# to a level that is still within their 'free' limit
+# 
+# The webpage being access via the URL is a plain text file with one SSID name per line
+#
 # Define Known Networks list for exemptions below (the name of each Wifi network on a separate line of a .txt file served from a web server)
 KNOWNNETWORKS="https://example.com/SSID.txt"
 # get date and time in UTC hence timezone offset is zero
@@ -93,11 +103,11 @@ function levenshtein {
 # requires Location Services access to be enabled for the Python runtime
 #
 # Get macOS Version
+# Improved logic for version checking submitted by Ofir Gal
 installed_vers=$(sw_vers -productVersion | awk -F '.' '{printf "%d%02d%02d\n", $1, $2, $3}')
-
 #
 # If macOS version is 14.4 or higher we need to do additional checks
-if (( installed_vers >= 140400 )) ; then
+if (( installed_vers >= 140400 )); then
 # Check MacAdmins Python3 is installed
         if [ ! -e "/usr/local/bin/managed_python3" ]; then
                 echo "No Python"
@@ -217,6 +227,7 @@ if [ $STATUS = "Off" ] ; then
     sleep 5
 fi
 #
+
 # Run as user logic for Python script
 currentUser=$(scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ { print $3 }')
 
