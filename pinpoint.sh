@@ -120,10 +120,8 @@ if (( installed_vers >= 140400 )); then
 #                       DebugLog "pinpoint_scan.py not found"
                         exit 1
                 fi
-                echo "Python"
+                DebugLog "Required Python installed and pinpoint_scan.py found"
         fi
-#       DebugLog "incompatible macOS"
-#       exit 1
 fi
 
 # Set your Google geolocation API key here
@@ -247,10 +245,21 @@ runAsUser() {
 
 if (( installed_vers >= 140400 )); then
 # If macOS newer than 14.4 then use Python script to get list of SSIDs
-    if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | head -12 2>&1)"; then
-        rc=0
-        stdout="$gl_ssids"
+# Python script needs location services so run script to if needed enable Location Services
+# It may take two cycles of running this script for it to be fully enabled
+    if [[ "${use_debug}" == "True" ]] || [[ "${use_debug}" == "true" ]] ; then
+        "/Library/Application Support/pinpoint/bin/GrantPythonLocationServiceAccess.sh"
     else
+        "/Library/Application Support/pinpoint/bin/GrantPythonLocationServiceAccess.sh" >/dev/null 2>&1
+    fi
+    if (( installed_vers >= 150000 )); then
+        # It seems 'tail' behaves differently between macOS 14 and 15 and one extra line needs to be stripped
+        # for macOS 15 and higher
+        if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +2 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | sed 's/,$//' | head -12 2>&1)"; then
+            rc=0
+            stdout="$gl_ssids"
+            echo "$stdout"
+        else
 # Likely error is caused by Location Services not yet enabled for Python, script needs to be
 # run at least once first to trigger a request in Privacy & Security which can then be approved.
 # See - https://github.com/jelockwood/pinpoint/wiki/Enabling-Location-Services
@@ -258,6 +267,22 @@ if (( installed_vers >= 140400 )); then
         stderr="$gl_ssids"
 	DebugLog "$stderr"
 	exit 1
+    else
+        # It seems 'tail' behaves differently between macOS 14 and 15 and one extra line needs to be stripped
+        # for macOS 14
+        if gl_ssids="$(runAsUser '/Library/Application Support/pinpoint/bin/pinpoint_scan.py'  | tail -n +3 | awk '{print substr($0, 34, 17)"$"substr($0, 52, 4)"$"substr($0, 1, 32)"$"substr($0, 57, 3)}' | sort -t $ -k2,2rn | sed 's/,$//' | head -12 2>&1)"; then
+            rc=0
+            stdout="$gl_ssids"
+            echo "$stdout"
+        else
+# Likely error is caused by Location Services not yet enabled for Python, script needs to be
+# run at least once first to trigger a request in Privacy & Security which can then be approved.
+# See - https://github.com/jelockwood/pinpoint/wiki/Enabling-Location-Services
+            rc=$?
+            stderr="$gl_ssids"
+	    DebugLog "$stderr"
+	    exit 1
+        fi
     fi
 else
 # If macOS older than 14.4 use built-in Apple tool to get list of SSIDs
