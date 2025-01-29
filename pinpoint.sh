@@ -20,7 +20,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.4.0b"
+versionstring="3.4.1b"
 # Feature added by Alex Narvey so that if currently connected to a known SSID the script will except without
 # calling Google APIs as the presumption is made that the location is then already known. This is to further
 # reduce the quantity of Google API calls and keep costs down. If The URL defined is invalid and the CURL
@@ -263,10 +263,11 @@ if (( installed_vers >= 140400 )); then
 # Likely error is caused by Location Services not yet enabled for Python, script needs to be
 # run at least once first to trigger a request in Privacy & Security which can then be approved.
 # See - https://github.com/jelockwood/pinpoint/wiki/Enabling-Location-Services
-        rc=$?
-        stderr="$gl_ssids"
-	DebugLog "$stderr"
-	exit 1
+            rc=$?
+            stderr="$gl_ssids"
+	    DebugLog "$stderr"
+	    exit 1
+ 	fi
     else
         # It seems 'tail' behaves differently between macOS 14 and 15 and one extra line needs to be stripped
         # for macOS 14
