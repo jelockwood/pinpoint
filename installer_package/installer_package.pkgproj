@@ -51,6 +51,22 @@
 															<key>GID</key>
 															<integer>0</integer>
 															<key>PATH</key>
+															<string>../GrantPythonLocationServiceAccess.sh</string>
+															<key>PATH_TYPE</key>
+															<integer>1</integer>
+															<key>PERMISSIONS</key>
+															<integer>493</integer>
+															<key>TYPE</key>
+															<integer>3</integer>
+															<key>UID</key>
+															<integer>0</integer>
+														</dict>
+														<dict>
+															<key>CHILDREN</key>
+															<array/>
+															<key>GID</key>
+															<integer>0</integer>
+															<key>PATH</key>
 															<string>../pinpoint.sh</string>
 															<key>PATH_TYPE</key>
 															<integer>1</integer>
@@ -574,7 +590,7 @@
 				<key>FOLLOW_SYMBOLIC_LINKS</key>
 				<false/>
 				<key>IDENTIFIER</key>
-				<string>com.jelockwood.pinpoint.pkg.</string>
+				<string>com.jelockwood.pinpoint.pkg</string>
 				<key>LOCATION</key>
 				<integer>0</integer>
 				<key>NAME</key>
@@ -590,7 +606,7 @@
 				<key>USE_HFS+_COMPRESSION</key>
 				<false/>
 				<key>VERSION</key>
-				<string>3.4.0b</string>
+				<string>3.4.2b</string>
 			</dict>
 			<key>TYPE</key>
 			<integer>0</integer>
