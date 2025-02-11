@@ -20,7 +20,7 @@
 # Script name
 scriptname=$(basename -- "$0")
 # Version number
-versionstring="3.4.1b"
+versionstring="3.4.2b"
 # Feature added by Alex Narvey so that if currently connected to a known SSID the script will except without
 # calling Google APIs as the presumption is made that the location is then already known. This is to further
 # reduce the quantity of Google API calls and keep costs down. If The URL defined is invalid and the CURL
